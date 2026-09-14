@@ -1,0 +1,10 @@
+.DS_Store
+desktop.ini
+*.tiled-session
+
+*.blend[0-9]
+
+/exports/
+/root/res/maps/
+/root/res/tilesets/
+/root/res/*.world
