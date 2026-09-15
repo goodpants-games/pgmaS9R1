@@ -1,3 +1,5 @@
+require("compat.love")
+
 Lg = love.graphics
 
 require("batteries"):export()

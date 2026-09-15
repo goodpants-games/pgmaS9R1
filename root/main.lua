@@ -235,24 +235,6 @@ function love.draw()
     Jprof.pop("frame")
 end
 
--- does not completely fix HTML5 audio issues
-if LOVEJS then
-    local _paused_sources
-    ---@diagnostic disable-next-line duplicate-set-field
-    function love.focus(focused)
-        game_focused = focused
-
-        if focused then
-            if _paused_sources then
-                love.audio.play(_paused_sources)
-                _paused_sources = nil
-            end
-        else
-            _paused_sources = love.audio.pause()
-        end
-    end
-end
-
 ---@diagnostic disable
 function love.run()
 	if love.load then

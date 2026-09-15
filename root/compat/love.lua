@@ -1,7 +1,7 @@
 local function canvas_format_fix()
     print("html5 canvas format check...")
 
-    local supported_formats = Lg.getCanvasFormats()
+    local supported_formats = love.graphics.getCanvasFormats()
     local format_check_list = {
         "rgba8",
         "srgba8",
