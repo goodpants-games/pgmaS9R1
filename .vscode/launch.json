@@ -11,7 +11,7 @@
             "program": {
                 "command": "lovec"
             },
-            "cwd": "${workspaceFolder}/root",
+            "cwd": "${workspaceFolder}/app",
             "args": [".", "--debug"],
             "preLaunchTask": "Build assets"
         }

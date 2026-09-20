@@ -4,7 +4,9 @@ desktop.ini
 
 *.blend[0-9]
 
+/love
 /exports/
-/root/res/maps/
-/root/res/tilesets/
-/root/res/*.world
+/app/res/maps/
+/app/res/tilesets/
+/app/res/*.world
+/app/res/sprites

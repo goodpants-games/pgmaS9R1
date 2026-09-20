@@ -45,7 +45,7 @@ def copy_file(src_path: str, dst_path: str) -> bool:
 def process_tmx(src_path: str) -> bool:
     (filename, _) = os.path.splitext(os.path.basename(src_path))
     intermediate_path = os.path.join(os.path.dirname(src_path), filename + '.lua')
-    dst_path = os.path.join('root/res/maps/',
+    dst_path = os.path.join('app/res/maps/',
                             os.path.relpath(os.path.dirname(src_path), TMX_BASE_DIRECTORY),
                             filename + '.lua')
 
@@ -67,7 +67,7 @@ def process_tmx(src_path: str) -> bool:
 def process_tsx(src_path: str) -> bool:
     (filename, _) = os.path.splitext(os.path.basename(src_path))
     intermediate_path = os.path.join(os.path.dirname(src_path), filename + '.lua')
-    dst_path = os.path.join('root/res/tilesets/',
+    dst_path = os.path.join('app/res/tilesets/',
                             os.path.relpath(os.path.dirname(src_path), TSX_BASE_DIRECTORY),
                             filename + '.lua')
 
@@ -88,7 +88,7 @@ def process_tsx(src_path: str) -> bool:
 
 def process_ase(src_path: str) -> bool:
     (filename, _) = os.path.splitext(os.path.basename(src_path))
-    dst_json_path = os.path.join('root/res/sprites/',
+    dst_json_path = os.path.join('app/res/sprites/',
                                  os.path.relpath(os.path.dirname(src_path), ASE_BASE_DIRECTORY),
                                  filename + '.json')
     dst_png_path = os.path.splitext(dst_json_path)[0] + '.png'
@@ -112,6 +112,8 @@ def process_ase(src_path: str) -> bool:
 
 
 def scan_tileset_directory(dirpath: str) -> bool:
+    if not os.path.exists(dirpath): return True
+
     for basename in os.listdir(dirpath):
         path = os.path.join(dirpath, basename)
 
@@ -122,7 +124,7 @@ def scan_tileset_directory(dirpath: str) -> bool:
             (_, fileext) = os.path.splitext(basename)
 
             if fileext == '.png':
-                dst_path = os.path.join('root/res/tilesets',
+                dst_path = os.path.join('app/res/tilesets',
                                         os.path.relpath(path, TSX_BASE_DIRECTORY))
                 
                 copy_file(path, dst_path)
@@ -135,6 +137,8 @@ def scan_tileset_directory(dirpath: str) -> bool:
 
 
 def scan_tiled_directory(dirpath: str) -> bool:
+    if not os.path.exists(dirpath): return True
+
     for basename in os.listdir(dirpath):
         path = os.path.join(dirpath, basename)
 
@@ -153,18 +157,22 @@ def scan_tiled_directory(dirpath: str) -> bool:
 
 
 def scan_tiled_worlds(dirpath: str) -> bool:
+    if not os.path.exists(dirpath): return True
+
     for basename in os.listdir(dirpath):
         path = os.path.join(dirpath, basename)
         (_, fileext) = os.path.splitext(basename)
 
         if fileext == ".world":
             s = copy_file(path,
-                          os.path.join("root/res/", basename))
+                          os.path.join("app/res/", basename))
 
     return True
 
 
 def scan_ase_directory(dirpath: str) -> bool:
+    if not os.path.exists(dirpath): return True
+
     for basename in os.listdir(dirpath):
         path = os.path.join(dirpath, basename)
 
@@ -195,7 +203,7 @@ def main():
 
         s = True
         break
-    
+
     if not s: sys.exit(1)
 
 

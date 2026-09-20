@@ -4,8 +4,8 @@
         "${workspaceFolder}/luals_def"
     ],
     "Lua.runtime.path": [
-        "root/?.lua",
-        "root/?/init.lua"
+        "app/?.lua",
+        "app/?/init.lua"
     ],
     "Lua.runtime.pathStrict": true,
     "Lua.runtime.version": "Lua 5.2",

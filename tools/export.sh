@@ -10,7 +10,7 @@ WIN64_BUILD_NAME=love-11.5-win64
 # create game LOVE
 echo "== LOVE PACKAGE =="
 mkdir -p exports
-cd root
+cd app
 cp ../CREDITS.txt ../LICENSE .
 zip -FSr ../exports/${GAME_NAME}.love res CREDITS.txt LICENSE `find . -iname '*.lua' -not -path './res/*'`
 rm CREDITS.txt LICENSE
