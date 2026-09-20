@@ -22,6 +22,10 @@ function scene.update(dt)
 end
 
 function scene.draw()
+    Lg.setColor(0, 0, 0)
+    self.spr:draw(App.mousex + 2, App.mousey + 2)
+
+    Lg.setColor(1, 1, 1)
     self.spr:draw(App.mousex, App.mousey)
 end
 
