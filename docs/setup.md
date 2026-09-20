@@ -26,6 +26,8 @@ it into a folder named "love" under the root directory of the project.
 I'm assuming you already have Aseprite.
 
 ### Tiled
+(Skip this section for now.)
+
 If we decide to need levels for this game, we will most likely make levels using
 Tiled. It can be installed from here: https://thorbjorn.itch.io/tiled. The
 installer downloadable from that page should install Tiled into the standard
@@ -59,7 +61,11 @@ Then, press ENTER. You must do this every time you make a new PowerShell session
 
 Afterwards, to run the game you simply type:
 ```powershell
-tools\run.ps1
+powershell -ExecutionPolicy Bypass -File tools\run.ps1
 ```
 This is a PowerShell cmdlet I made to run the asset builder Python script and
 then launch LOVE from the unzipped LOVE folder that is assumed to exist.
+
+By default, Windows disables running cmdlets downloaded from the Internet for
+security reasons. The "-ExecutionPolicy Bypass" part is to force it to run the
+cmdlet anyway.
