@@ -57,11 +57,3 @@ if newproxy == nil then
         return res
     end
 end
-
--- these imitate the love 12.0 names
----@diagnostic disable-next-line
-if love._version_major < 12 then
-    love.rawGameArguments = arg
-    ---@diagnostic disable-next-line
-    love.parsedGameArguments = love.arg.parseGameArguments(arg)
-end

@@ -1,3 +1,5 @@
+-- Debug drawing: queued in love.update and flushed in love.draw.
+
 ---@class DebugDraw
 ---@field private _draw_list function[]
 ---@overload fun():DebugDraw

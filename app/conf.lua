@@ -1,3 +1,7 @@
+--------------------------------------------------------------------------------
+-- CONFIGURATION
+--------------------------------------------------------------------------------
+
 require("compat.luaenv")
 
 -- this is to make a lua debugger extension work
@@ -25,7 +29,10 @@ if love._version_major < 12 then
     love.parsedGameArguments = love.arg.parseGameArguments(arg)
 end
 
+-- check if this is running on web. since love.system is not loaded when
+-- conf.lua is ran, we need to explicitly load it here.
 LOVEJS = require("love.system").getOS() == "Web"
+
 -- true if running an archive instead of a filesystem folder
 IS_PACKAGED = true
 if not LOVEJS then
@@ -40,25 +47,18 @@ if not LOVEJS then
     end
 end
 
-DISPLAY_WIDTH = 240
-DISPLAY_HEIGHT = 160
-GAME_TICK_LENGTH = 1.0 / 60.0
-Debug = {
-    enabled = false
-}
-
--- check debug command flag
-for _, arg in ipairs(love.parsedGameArguments) do
-    if arg == "--debug" then
-        Debug.enabled = true
-        print("enable debug")
-    end
-end
-
 function love.conf(t)
+    -- check debug command flag
+    for _, arg in ipairs(love.parsedGameArguments) do
+        if arg == "--debug" then
+            Debug.enabled = true
+            print("enable debug")
+        end
+    end
+
     t.version = "11.4"
-    t.window.width = DISPLAY_WIDTH * 3
-    t.window.height = DISPLAY_HEIGHT * 3
+    t.window.width = App.scrw * 3
+    t.window.height = App.scrh * 3
     t.window.resizable = true
     t.window.vsync = 1
     t.window.highdpi = true
@@ -68,10 +68,43 @@ function love.conf(t)
     t.modules.physics = false
 end
 
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+-- GLOBAL VARIABLES
+--------------------------------------------------------------------------------
+
+App = {
+    scrw = 240, -- internal display width
+    scrh = 180, -- internal display height
+    tick_length = 1.0 / 60.0
+}
+Debug = {
+    enabled = false
+}
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+-- ADDITIONAL ERROR HANDLING
 --------------------------------------------------------------------------------
 
 ---@diagnostic disable lowercase-global
 
+---Signal an error without attempting to abort the process. Prints the given
+---error message alongside a stack trace.
 ---@param err any
 ---@param level integer?
 function softerror(err, level)

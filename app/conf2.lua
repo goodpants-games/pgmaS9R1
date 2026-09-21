@@ -1,3 +1,6 @@
+-- Additional configuration to be ran after all LOVE modules have been
+-- initialized.
+
 require("compat.love")
 
 Lg = love.graphics
