@@ -6,8 +6,8 @@
     sceneman. The remaining modules are not used frequently enough for them to
     need to be globals. (sceneman is an exception).
 - Modules and classes must be in `PascalCase`.
-- Use `snake_case` for everything else. `flatcase` is permitted if the name is
-  short enough. (e.g. "scrw", "mousex" as opposed to "mouse_x")
+- Use `camelCase` for everything else. (Note: Some old code uses snake case.
+  Ignore it.)
 
 ## Misc. conventions
 - File and directory names must be in `snake_case`.
