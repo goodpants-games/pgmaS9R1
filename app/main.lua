@@ -1,6 +1,7 @@
 require("conf2")
 
 local fontres = require("fontres")
+local Input = require("input")
 
 App.mousex = 0
 App.mousey = 0
@@ -75,6 +76,8 @@ function love.load(args)
         end
     end
 
+    Input.init()
+
     Lg.setFont(fontres.monogram)
 	
     Sceneman.switchScene("game_runner")
@@ -131,6 +134,8 @@ function love.update(dt)
     Jprof.pop()
 
     anl_mem:add_sample(collectgarbage("count"))
+
+    Input.update()
 
     Debug.draw.enabled = Debug.enabled
 

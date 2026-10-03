@@ -1,6 +1,7 @@
 local Game = batteries.class { name = "microgame.test" }
 local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
+local Input = require("input")
 
 function Game:new()
     self.verb = "Test 2!"
@@ -20,6 +21,10 @@ end
 function Game:tick()
     self.spr:update(App.tickLength)
     self.sprY = self.sprY + 1
+
+    if Input.players[1]:pressed("gameButton") then
+        self.sprX = love.math.random(0, GameConf.scrW)
+    end
 end
 
 function Game:draw()
