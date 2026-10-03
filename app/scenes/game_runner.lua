@@ -58,7 +58,7 @@ function scene.load()
     ---@type {[string]:Microgame}
     self.gameCache = {}
 
-    self.gameSet = {"test1", "test2"}
+    self.gameSet = {"ssi_swing"}
     self.nextMicrogameToLoad = getNextMicrogame()
 end
 
