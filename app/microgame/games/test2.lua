@@ -1,9 +1,12 @@
+---@class _: Microgame
 local Game = batteries.class { name = "microgame.test" }
 local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 local Input = require("input")
 
-function Game:new()
+---@param speed number Number of seconds removed from the timer.
+---@param level number Difficulty level starting from 0. Increases after each boss round.
+function Game:new(speed, level)
     self.verb = "Test 2!"
     self.backgroundColor = { 0.0, 0.0, 0.5 }
 
@@ -32,4 +35,4 @@ function Game:draw()
     self.spr:draw(self.sprX, self.sprY)
 end
 
-return Game
+return Game --[[@as Microgame]]

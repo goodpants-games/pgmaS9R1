@@ -5,20 +5,20 @@ local scene = Sceneman.scene()
 local self
 
 local function loadMicrogame(name)
-    local chunk = self.gameCache[name]
-    if not chunk then
+    local gameCtor = self.gameCache[name]
+    if not gameCtor then
         local filePath = ("/microgame/games/%s.lua"):format(name)
-        local err
-        chunk, err = love.filesystem.load(filePath)
+        local chunk, err = love.filesystem.load(filePath)
         if err then
             error(("could not load microgame '%s': %s"):format(name, err))
         end
 
-        self.gameCache[name] = chunk
+        gameCtor = chunk() --[[@as Microgame]]
+        self.gameCache[name] = gameCtor
     end
 
     -- initialize microgame
-    self.game = chunk()()
+    self.game = gameCtor(0, 0)
 
     -- validate fields
     if not self.game.verb then
@@ -55,6 +55,7 @@ function scene.load()
 
     -- this holds cached microgame classes. don't use require so that these
     -- classes can be freed later, when no longer playing microgames
+    ---@type {[string]:Microgame}
     self.gameCache = {}
 
     self.gameSet = {"test1", "test2"}
