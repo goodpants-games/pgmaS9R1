@@ -49,7 +49,7 @@ function DebugDraw:point(x, y)
     end)
 end
 
-function DebugDraw:rect_lines(x, y, w, h)
+function DebugDraw:rectLines(x, y, w, h)
     if not self.enabled then return end
     table.insert(self._draw_list, function()
         Lg.rectangle("line", math.round(x) + 0.5, math.round(y) + 0.5, math.round(w), math.round(h))
@@ -63,7 +63,7 @@ function DebugDraw:line(x0, y0, x1, y1)
     end)
 end
 
-function DebugDraw:circle_lines(x, y, r)
+function DebugDraw:circleLines(x, y, r)
     if not self.enabled then return end
     table.insert(self._draw_list, function()
         Lg.circle("line", math.round(x), math.round(y), r)

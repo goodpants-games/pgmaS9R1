@@ -6,7 +6,7 @@ App.mousex = 0
 App.mousey = 0
 App.frame = 0
 
-local display_canvas = Lg.newCanvas(App.scrw, App.scrh, { dpiscale = 1.0 })
+local display_canvas = Lg.newCanvas(App.scrW, App.scrH, { dpiscale = 1.0 })
 
 local display_ox = 0.0
 local display_oy = 0.0
@@ -109,11 +109,11 @@ function love.textinput(...)
 end
 
 local function update_display_fit()
-    display_scale = math.min(Lg.getHeight() / App.scrh, Lg.getWidth() / App.scrw)
+    display_scale = math.min(Lg.getHeight() / App.scrH, Lg.getWidth() / App.scrW)
     display_scale = math.max(1, display_scale)
     -- display_scale = math.floor(display_scale)
-    display_ox = (Lg.getWidth() - App.scrw * display_scale) / 2
-    display_oy = (Lg.getHeight() - App.scrh * display_scale) / 2
+    display_ox = (Lg.getWidth() - App.scrW * display_scale) / 2
+    display_oy = (Lg.getHeight() - App.scrH * display_scale) / 2
     display_ox = math.floor(display_ox)
     display_oy = math.floor(display_oy)
     -- print(display_ox, display_oy, display_scale)
@@ -146,7 +146,7 @@ function love.update(dt)
     -- https://medium.com/@tglaiel/how-to-make-your-game-run-at-60fps-24c61210fe75
     local dt_to_accum = dt
     local DT_SNAP_EPSILON = 0.002
-    local tick_len = App.tick_length
+    local tick_len = App.tickLength
 
     if math.abs(dt - tick_len) < DT_SNAP_EPSILON then -- 60 fps?
         dt_to_accum = tick_len

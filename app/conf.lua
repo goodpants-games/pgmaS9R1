@@ -57,8 +57,8 @@ function love.conf(t)
     end
 
     t.version = "11.4"
-    t.window.width = App.scrw * 3
-    t.window.height = App.scrh * 3
+    t.window.width = App.scrW * 3
+    t.window.height = App.scrH * 3
     t.window.resizable = true
     t.window.vsync = 1
     t.window.highdpi = true
@@ -81,9 +81,9 @@ end
 --------------------------------------------------------------------------------
 
 App = {
-    scrw = 240, -- internal display width
-    scrh = 180, -- internal display height
-    tick_length = 1.0 / 60.0
+    scrW = 240, -- internal display width
+    scrH = 180, -- internal display height
+    tickLength = 1.0 / 60.0
 }
 Debug = {
     enabled = false
