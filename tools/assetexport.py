@@ -7,14 +7,13 @@ import sys
 ASEPRITE = os.environ.get('ASEPRITE', 'aseprite')
 TILED = os.environ.get('TILED', 'tiled')
 
-ASE_BASE_DIRECTORY   = os.path.join(os.curdir, 'assets/sprites')
-TILED_BASE_DIRECTORY = os.path.join(os.curdir, 'assets/tiled')
-TMX_BASE_DIRECTORY   = os.path.join(TILED_BASE_DIRECTORY, 'maps')
-TSX_BASE_DIRECTORY   = os.path.join(TILED_BASE_DIRECTORY, 'tilesets')
+BASE_DIRECTORY = os.path.join(os.curdir, 'assets')
 
 ASEPRITE_ARGS = ['--sheet-pack', '--shape-padding', '1', '--trim',
                  '--merge-duplicates', '--format', 'json-array', '--list-tags']
 
+artifacts: list[str] = []
+dry_run: bool = False
 
 def needs_update(src_path: str, dst_path: str) -> bool:
     # first, determine if out_path is out of date
@@ -33,7 +32,8 @@ def copy_file(src_path: str, dst_path: str) -> bool:
     src_path = os.path.normpath(src_path)
     dst_path = os.path.normpath(dst_path)
 
-    if needs_update(src_path, dst_path):
+    artifacts.append(dst_path)
+    if not dry_run and needs_update(src_path, dst_path):
         print(f"[CPY] {src_path} => {dst_path}")
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         shutil.copy(src_path, dst_path)
@@ -42,14 +42,13 @@ def copy_file(src_path: str, dst_path: str) -> bool:
         return False
 
 
-def process_tmx(src_path: str) -> bool:
+def process_tmx(src_path: str, dst_path: str) -> bool:
     (filename, _) = os.path.splitext(os.path.basename(src_path))
     intermediate_path = os.path.join(os.path.dirname(src_path), filename + '.lua')
-    dst_path = os.path.join('app/res/maps/',
-                            os.path.relpath(os.path.dirname(src_path), TMX_BASE_DIRECTORY),
-                            filename + '.lua')
-
-    if not needs_update(src_path, dst_path): return True
+    dst_path = os.path.splitext(dst_path)[0] + '.lua'
+    
+    artifacts.append(dst_path)
+    if dry_run or not needs_update(src_path, dst_path): return True
 
     src_path = os.path.normpath(src_path)
     intermediate_path = os.path.normpath(intermediate_path)
@@ -64,14 +63,13 @@ def process_tmx(src_path: str) -> bool:
     return True
 
 
-def process_tsx(src_path: str) -> bool:
+def process_tsx(src_path: str, dst_path: str) -> bool:
     (filename, _) = os.path.splitext(os.path.basename(src_path))
     intermediate_path = os.path.join(os.path.dirname(src_path), filename + '.lua')
-    dst_path = os.path.join('app/res/tilesets/',
-                            os.path.relpath(os.path.dirname(src_path), TSX_BASE_DIRECTORY),
-                            filename + '.lua')
+    dst_path = os.path.splitext(dst_path)[0] + '.lua'
 
-    if not needs_update(src_path, dst_path): return True
+    artifacts.append(dst_path)
+    if dry_run or not needs_update(src_path, dst_path): return True
 
     src_path = os.path.normpath(src_path)
     intermediate_path = os.path.normpath(intermediate_path)
@@ -86,14 +84,14 @@ def process_tsx(src_path: str) -> bool:
     return True
 
 
-def process_ase(src_path: str) -> bool:
+def process_ase(src_path: str, dst_path: str) -> bool:
     (filename, _) = os.path.splitext(os.path.basename(src_path))
-    dst_json_path = os.path.join('app/res/sprites/',
-                                 os.path.relpath(os.path.dirname(src_path), ASE_BASE_DIRECTORY),
-                                 filename + '.json')
-    dst_png_path = os.path.splitext(dst_json_path)[0] + '.png'
+    dst_json_path = os.path.splitext(dst_path)[0] + '.json'
+    dst_png_path = os.path.splitext(dst_path)[0] + '.png'
 
-    if not needs_update(src_path, dst_json_path): return True
+    artifacts.append(dst_json_path)
+    artifacts.append(dst_png_path)
+    if dry_run or not needs_update(src_path, dst_json_path): return True
 
     src_path = os.path.normpath(src_path)
     dst_json_path = os.path.normpath(dst_json_path)
@@ -111,98 +109,67 @@ def process_ase(src_path: str) -> bool:
     return True
 
 
-def scan_tileset_directory(dirpath: str) -> bool:
-    if not os.path.exists(dirpath): return True
+def scan_directory(dirpath: str) -> bool:
+    succ = True
+    src_dir = os.path.normpath(os.path.join('assets', dirpath))
+    dst_dir = os.path.normpath(os.path.join('app', 'res', dirpath))
 
-    for basename in os.listdir(dirpath):
-        path = os.path.join(dirpath, basename)
+    if not os.path.exists(src_dir): return succ
+    for basename in os.listdir(src_dir):
+        path = os.path.join(src_dir, basename)
 
-        if os.path.isdir(path) and basename != 'editoronly':
-            scan_tileset_directory(path)
-        
+        if os.path.isdir(path):
+            if basename != 'noexport':
+                if not scan_directory(os.path.join(dirpath, basename)):
+                    succ = False
         else:
+            dst_path = os.path.join(dst_dir, basename)
             (_, fileext) = os.path.splitext(basename)
 
-            if fileext == '.png':
-                dst_path = os.path.join('app/res/tilesets',
-                                        os.path.relpath(path, TSX_BASE_DIRECTORY))
-                
-                copy_file(path, dst_path)
-            
-            elif fileext == '.tsx':
-                if not process_tsx(path):
-                    return False
-    
-    return True
+            match fileext:
+                case '.ase' | '.aseprite':
+                    if not process_ase(path, dst_path):
+                        succ = False
+                case '.tmx':
+                    if not process_tmx(path, dst_path):
+                        succ = False
+                case '.tsx':
+                    if not process_tsx(path, dst_path):
+                        succ = False
+                case _:
+                    if not copy_file(path, dst_path):
+                        succ = False
 
-
-def scan_tiled_directory(dirpath: str) -> bool:
-    if not os.path.exists(dirpath): return True
-
-    for basename in os.listdir(dirpath):
-        path = os.path.join(dirpath, basename)
-
-        if os.path.isdir(path) and basename != 'editoronly':
-            scan_tiled_directory(path)
-
-        else:
-            (filename, fileext) = os.path.splitext(basename)
-
-            if fileext == ".tmx":
-                s = process_tmx(os.path.normpath(path))
-                if not s:
-                    return False
-    
-    return True
-
-
-def scan_tiled_worlds(dirpath: str) -> bool:
-    if not os.path.exists(dirpath): return True
-
-    for basename in os.listdir(dirpath):
-        path = os.path.join(dirpath, basename)
-        (_, fileext) = os.path.splitext(basename)
-
-        if fileext == ".world":
-            s = copy_file(path,
-                          os.path.join("app/res/", basename))
-
-    return True
-
-
-def scan_ase_directory(dirpath: str) -> bool:
-    if not os.path.exists(dirpath): return True
-
-    for basename in os.listdir(dirpath):
-        path = os.path.join(dirpath, basename)
-
-        if os.path.isdir(path) and basename != 'editoronly':
-            scan_ase_directory(path)
-
-        else:
-            if not process_ase(path):
-                return False
-    
-    return True
+    return succ
 
 
 def main():
+    global dry_run
+    
+    for i in range(1, len(sys.argv)):
+        if sys.argv[i] == '--dry-run':
+            dry_run = True
+    
     s = False
     while True:
-        if not scan_tiled_worlds(TILED_BASE_DIRECTORY):
-            break
-
-        if not scan_tiled_directory(TMX_BASE_DIRECTORY):
-            break
-
-        if not scan_tileset_directory(TSX_BASE_DIRECTORY):
-            break
-
-        if not scan_ase_directory(ASE_BASE_DIRECTORY):
+        if not scan_directory('.'):
             break
 
         s = True
         break
+
+    if dry_run:
+        for artifact in artifacts:
+            rel_path = os.path.normpath(os.path.relpath(artifact, 'app/res'))
+            sys.stdout.write(rel_path.replace('\\', '/'))
+            sys.stdout.write('\n')
+    else:
+        # create .gitignore for artifacts
+        with open('app/res/.gitignore', 'w') as f:
+            for artifact in artifacts:
+                rel_path = os.path.normpath(os.path.relpath(artifact, 'app/res'))
+                f.write(rel_path.replace('\\', '/'))
+                f.write('\n')
 
     if not s: sys.exit(1)
 
