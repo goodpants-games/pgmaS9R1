@@ -77,7 +77,7 @@ function love.load(args)
 
     Lg.setFont(fontres.monogram)
 	
-    Sceneman.switchScene("main")
+    Sceneman.switchScene("game_runner")
 end
 
 ---@diagnostic disable-next-line duplicate-set-field
