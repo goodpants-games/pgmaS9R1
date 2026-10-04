@@ -15,9 +15,16 @@ function Game:new(speed, level)
 
     self.sprX = math.floor(GameConf.scrW / 2)
     self.sprY = 0
+
+    self.music = love.audio.newSource("/res/music/CLASS11.MOD", "stream")
+    self.music:seek(19.0)
+    self.music:play()
 end
 
 function Game:release()
+    self.music:stop()
+    self.music:release()
+
     self.spr:release()
 end
 

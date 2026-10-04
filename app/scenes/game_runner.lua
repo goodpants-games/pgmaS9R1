@@ -5,6 +5,11 @@ local scene = Sceneman.scene()
 local self
 
 local function loadMicrogame(name)
+    if self.game then
+        self.game:release()
+        self.game = nil
+    end
+
     local gameCtor = self.gameCache[name]
     if not gameCtor then
         local filePath = ("/microgame/games/%s.lua"):format(name)
@@ -58,7 +63,7 @@ function scene.load()
     ---@type {[string]:Microgame}
     self.gameCache = {}
 
-    self.gameSet = {"ssi_swing"}
+    self.gameSet = {"ssi_swing", "test1", "test2"}
     self.nextMicrogameToLoad = getNextMicrogame()
 end
 

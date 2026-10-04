@@ -19,6 +19,11 @@ function Game:new(speed, level)
     self.sndOctoKill = love.audio.newSource(resRoot .. "octopus_kill.wav", "static")
     self.sndPlrHurt = love.audio.newSource(resRoot .. "player_hurt.wav", "static")
     self.sndPlrSwing = love.audio.newSource(resRoot .. "player_swing.wav", "static")
+    self.music = love.audio.newSource(resRoot .. "evildrone.ogg", "stream")
+    self.music:setLooping(true)
+    self.music:seek(love.math.random() * 2)
+    self.music:play()
+    self.sndWin = love.audio.newSource(resRoot .. "win.wav", "static")
 
     self.robotSpr = Sprite.new(resRoot .. "sprites/robot.json")
     self.robotSpr.alignment = "center"
@@ -46,11 +51,20 @@ end
 function Game:release()
     self.bgImg:release()
     self.shadowImg:release()
+    self.sndOctoAlert:stop()
     self.sndOctoAlert:release()
+    self.sndOctoDive:stop()
     self.sndOctoDive:release()
+    self.sndOctoKill:stop()
     self.sndOctoKill:release()
+    self.sndPlrHurt:stop()
     self.sndPlrHurt:release()
+    self.sndPlrSwing:stop()
     self.sndPlrSwing:release()
+    self.music:stop()
+    self.music:release()
+    self.sndWin:stop()
+    self.sndWin:release()
     self.robotSpr:release()
     self.octoSpr:release()
 end
@@ -124,6 +138,8 @@ function Game:tick()
             self.sndOctoKill:play()
             self.octoStage = "dead"
             self.octoSpr:play("dead")
+            self.sndWin:play()
+            self.music:stop()
             self.octoVx = 2.5
             self.octoVy = 2
         elseif self.octoX < 20 then
