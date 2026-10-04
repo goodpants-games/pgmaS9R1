@@ -15,6 +15,11 @@ ASEPRITE_ARGS = ['--sheet-pack', '--shape-padding', '1', '--trim',
 artifacts: list[str] = []
 dry_run: bool = False
 
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, *kwargs)
+
+
 def needs_update(src_path: str, dst_path: str) -> bool:
     # first, determine if out_path is out of date
     has_mtime = False
@@ -34,7 +39,7 @@ def copy_file(src_path: str, dst_path: str) -> bool:
 
     artifacts.append(dst_path)
     if not dry_run and needs_update(src_path, dst_path):
-        print(f"[CPY] {src_path} => {dst_path}")
+        eprint(f"[CPY] {src_path} => {dst_path}")
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         shutil.copy(src_path, dst_path)
         return True
@@ -53,7 +58,7 @@ def process_tmx(src_path: str, dst_path: str) -> bool:
     src_path = os.path.normpath(src_path)
     intermediate_path = os.path.normpath(intermediate_path)
 
-    print(f'[TMX] {src_path} => {dst_path}')
+    eprint(f'[TMX] {src_path} => {dst_path}')
     tiled = subprocess.run([TILED, '--export-map', 'lua', src_path, intermediate_path])
     if tiled.returncode != 0:
         return False
@@ -74,7 +79,7 @@ def process_tsx(src_path: str, dst_path: str) -> bool:
     src_path = os.path.normpath(src_path)
     intermediate_path = os.path.normpath(intermediate_path)
 
-    print(f'[TSX] {src_path} => {dst_path}')
+    eprint(f'[TSX] {src_path} => {dst_path}')
     tiled = subprocess.run([TILED, '--export-tileset', 'lua', src_path, intermediate_path])
     if tiled.returncode != 0:
         return False
@@ -97,7 +102,7 @@ def process_ase(src_path: str, dst_path: str) -> bool:
     dst_json_path = os.path.normpath(dst_json_path)
     dst_png_path = os.path.normpath(dst_png_path)
 
-    print(f'[ASE] {src_path} => {dst_json_path}')
+    eprint(f'[ASE] {src_path} => {dst_json_path}')
     os.makedirs(os.path.dirname(dst_json_path), exist_ok=True)
     ase = subprocess.run([ASEPRITE,
                           '-b', src_path,
@@ -170,7 +175,7 @@ def update_gitignore() -> bool:
                     continue
                 # error on negation or wildcards
                 if line[0] == '!' or '*' in line:
-                    print("error: .gitignore contains a negation or wildcard", file=sys.stderr)
+                    eprint("error: .gitignore contains a negation or wildcard", file=sys.stderr)
                     sys.exit(1)
                 
                 if line == '.gitignore':
@@ -179,7 +184,7 @@ def update_gitignore() -> bool:
                 # if a file will no longer exist in the .gitignore, it will be
                 # deleted.
                 if not line in new_files:
-                    print(f"Prune {line}")
+                    eprint(f"Prune {line}", file=sys.stderr)
                     os.remove(os.path.join('app/res', line))
 
     # create .gitignore for artifacts
