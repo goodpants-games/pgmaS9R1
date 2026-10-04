@@ -5,13 +5,73 @@ local FontRes = require("fontres")
 local scene = Sceneman.scene()
 local self
 
+local GAME_SELECT_CHANCE = 0.4 -- ∈ [0, 1)
 local GAME_SET = {
     "ssi_swing",
     "bounce",
     "fruit_catch",
+    "test1",
+    "test2",
 }
 
+---@type fun():string
+local getNextMicrogame
+
+function scene.load(data)
+    self = {}
+
+    Lg.setBackgroundColor(0.5, 0.5, 0.5)
+
+    local font = Lg.newFont("/res/fonts/monogram.ttf", 32, "mono", 1.0)
+    self.verbText = Lg.newText(font)
+
+    -- this holds cached microgame classes. don't use require so that these
+    -- classes can be freed later, when no longer playing microgames
+    ---@type {[string]:microgame.Game}
+    self.gameCache = {}
+
+    if data.initMicrogame then
+        self.gameList = {data.initMicrogame}
+    else
+        self.gameList = table.shuffle(GAME_SET)
+    end
+    self.nextMicrogameToLoad = getNextMicrogame()
+
+    self.gameManager = GameManager()
+end
+
+-- (local)
+function getNextMicrogame()
+    -- traverse through the game list in ascending order. on each iteration,
+    -- there is a chance that that game will be picked. once picked, move that
+    -- element to the end of the list.
+    local gameListLen = #self.gameList
+    local selectIdx = 1
+
+    -- TODO: make random selection more evenly distributed across the list,
+    --       while still making the first few entries the most likelist to be
+    --       picked, while having all of their probabilities add up to 1.
+
+    -- stop on the third-to-last-item to guarantee that it will not pick one of
+    -- the last two chosen games
+    while selectIdx < gameListLen - 2 do
+        if love.math.random() < GAME_SELECT_CHANCE then
+            break
+        end
+        selectIdx = selectIdx + 1
+    end
+
+    local selectedGame = table.remove(self.gameList, selectIdx)
+    table.insert(self.gameList, selectedGame)
+
+    batteries.pretty.print(self.gameList)
+
+    return selectedGame
+end
+
 local function loadMicrogame(name)
+    -- load game constructor from cache, or, if not exists, load from the file
+    -- and save it to the cache.
     local gameCtor = self.gameCache[name]
     if not gameCtor then
         local filePath = ("/microgame/games/%s.lua"):format(name)
@@ -31,34 +91,6 @@ local function loadMicrogame(name)
     self.verbTextTimer = 1.0
 
     self.gameTimer = GameConf.refGameLength
-end
-
-local function getNextMicrogame()
-    -- TODO: smarter algorithm which eliminates nearby duplicates
-    return self.gameSet[love.math.random(1, #self.gameSet)]
-end
-
-function scene.load(data)
-    self = {}
-
-    Lg.setBackgroundColor(0.5, 0.5, 0.5)
-
-    local font = Lg.newFont("/res/fonts/monogram.ttf", 32, "mono", 1.0)
-    self.verbText = Lg.newText(font)
-
-    -- this holds cached microgame classes. don't use require so that these
-    -- classes can be freed later, when no longer playing microgames
-    ---@type {[string]:microgame.Game}
-    self.gameCache = {}
-
-    if data.initMicrogame then
-        self.gameSet = {data.initMicrogame}
-    else
-        self.gameSet = GAME_SET
-    end
-    self.nextMicrogameToLoad = getNextMicrogame()
-
-    self.gameManager = GameManager()
 end
 
 function scene.unload()
