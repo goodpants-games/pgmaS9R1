@@ -147,6 +147,7 @@ function Game:tick()
             self.octoTicker = 60
             self.snd.plrHurt:play()
             self.robotSpr:play("hurt")
+            self.octoSpr:play("hurt")
             self.plrOx = -6
         end
     
