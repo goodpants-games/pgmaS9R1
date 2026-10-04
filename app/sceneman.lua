@@ -125,7 +125,7 @@ local function functionNoOp() end
 ---|    "hook"
 
 ---@class sceneman.Scene
----@field load fun(args...: string)|nil
+---@field load fun(args...: any)|nil
 ---@field unload fun()|nil
 ---@field update fun(dt: number)|nil
 ---@field draw fun()|nil
@@ -138,7 +138,7 @@ Scene.update = functionNoOp
 Scene.draw = functionNoOp
 
 ---@class sceneman.Transition
----@field load fun(args...: string)|nil
+---@field load fun(args...: any)|nil
 ---@field update fun(dt: number)|nil
 ---@field draw fun()|nil
 ---@field oldScene sceneman.Scene?
