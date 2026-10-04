@@ -97,6 +97,7 @@ function Game:tick()
 
             if playWallBounce and self.win then
                 self.snd.wallBounce:setPitch(love.math.random() * 0.2 + 1.0)
+                self.snd.wallBounce:seek(0)
                 self.snd.wallBounce:play()
             end
 
@@ -154,6 +155,7 @@ function Game:_ball_paddle_collision()
             self.paddleFrozen = false
 
             self.snd.paddleBounce:setPitch(love.math.random() * 0.2 + 0.9)
+            self.snd.paddleBounce:seek(0)
             self.snd.paddleBounce:play()
         end
     end
