@@ -1,15 +1,11 @@
 local GameConf = require("microgame.conf")
+local GameManager = require("microgame.manager")
 local FontRes = require("fontres")
 
 local scene = Sceneman.scene()
 local self
 
 local function loadMicrogame(name)
-    if self.game then
-        self.game:release()
-        self.game = nil
-    end
-
     local gameCtor = self.gameCache[name]
     if not gameCtor then
         local filePath = ("/microgame/games/%s.lua"):format(name)
@@ -18,28 +14,14 @@ local function loadMicrogame(name)
             error(("could not load microgame '%s': %s"):format(name, err))
         end
 
-        gameCtor = chunk() --[[@as Microgame]]
+        gameCtor = chunk() --[[@as microgame.Game]]
         self.gameCache[name] = gameCtor
     end
 
     -- initialize microgame
-    self.game = gameCtor(0, 0)
+    self.gameManager:loadGame(gameCtor)
 
-    -- validate fields
-    if not self.game.verb then
-        error("microgame did not define verb")
-    end
-    if not self.game.tick then
-        error("microgame did not define tick procedure")
-    end
-    if not self.game.draw then
-        error("microgame did not define draw procedure")
-    end
-    if not self.game.backgroundColor then
-        self.game.backgroundColor = { 0.0, 0.0, 0.0 }
-    end
-
-    self.verbText:set(self.game.verb)
+    self.verbText:set(self.gameManager.game.verb)
     self.verbTextTimer = 1.0
 
     self.gameTimer = GameConf.refGameLength
@@ -60,11 +42,13 @@ function scene.load()
 
     -- this holds cached microgame classes. don't use require so that these
     -- classes can be freed later, when no longer playing microgames
-    ---@type {[string]:Microgame}
+    ---@type {[string]:microgame.Game}
     self.gameCache = {}
 
-    self.gameSet = {"ssi_swing", "test1", "test2"}
+    self.gameSet = {"ssi_swing", "test1"}
     self.nextMicrogameToLoad = getNextMicrogame()
+    
+    self.gameManager = GameManager()
 end
 
 function scene.unload()
@@ -73,22 +57,28 @@ function scene.unload()
     self = nil
 end
 
-function scene.update()
+function scene.update(dt)
+    self.gameManager:update(dt)
+end
+
+---@diagnostic disable-next-line
+function scene.tick()
     if self.nextMicrogameToLoad then
         loadMicrogame(self.nextMicrogameToLoad)
         self.nextMicrogameToLoad = nil
     end
 
-    self.game:tick()
+    self.gameManager:tick()
 
     if self.verbTextTimer > 0.0 then
         self.verbTextTimer = self.verbTextTimer - App.tickLength
     end
 
-    self.gameTimer = self.gameTimer - App.tickLength
+    self.gameTimer = self.gameTimer - App.tickLength * self.gameManager.gameSpeed
     if self.gameTimer < 0 then
         self.gameTimer = 0
         self.nextMicrogameToLoad = getNextMicrogame()
+        -- self.gameManager.gameSpeed = self.gameManager.gameSpeed + 0.5
     end
 end
 
@@ -101,12 +91,8 @@ function scene.draw()
     -- set up draw bounds
     Lg.translate(scrX, scrY)
     Lg.intersectScissor(scrX, scrY, GameConf.scrW, GameConf.scrH)
-    -- draw background
-    Lg.setColor(self.game.backgroundColor)
-    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
     -- draw game
-    Lg.setColor(1, 1, 1)
-    self.game:draw()
+    self.gameManager:draw()
 
     Lg.pop()
 

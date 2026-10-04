@@ -14,6 +14,9 @@ local display_oy = 0.0
 local display_scale = 1.0
 local game_focused = true
 
+-- make sure draw is not ever called without a previous call to tick
+local did_tick = false
+
 local WindowedAnalyzer = batteries.class()
 function WindowedAnalyzer:new()
     ---@private
@@ -176,6 +179,7 @@ function love.update(dt)
         
         Jprof.push("tick")
         Sceneman.dispatch("tick")
+        did_tick = true
         Jprof.pop("tick")
 
         dt_accum = dt_accum - tick_len
@@ -199,22 +203,27 @@ end
 ---@diagnostic disable-next-line duplicate-set-field
 function love.draw()
     local draw_ts = love.timer.getTime()
-
-    Lg.setCanvas(display_canvas)
-    local bg_r, bg_g, bg_b, bg_a = Lg.getBackgroundColor()
-    Lg.clear(bg_r, bg_g, bg_b, bg_a)
-
     Jprof.push("draw")
-    Sceneman.draw()
-    Debug.draw:flush()
+
+    if did_tick then
+        Lg.setCanvas(display_canvas)
+        local bg_r, bg_g, bg_b, bg_a = Lg.getBackgroundColor()
+        Lg.clear(bg_r, bg_g, bg_b, bg_a)
+
+        Sceneman.draw()
+        Debug.draw:flush()
+
+        Lg.setCanvas()
+    end
     
     -- draw display onto window
     Jprof.push("display")
-    Lg.setCanvas()
     Lg.clear(0, 0, 0, 1)
     Lg.setColor(1, 1, 1)
     Lg.origin()
-    Lg.draw(display_canvas, display_ox, display_oy, 0, display_scale, display_scale)
+    if did_tick then
+        Lg.draw(display_canvas, display_ox, display_oy, 0, display_scale, display_scale)
+    end
     Lg.setShader()
 
     Jprof.pop("display")

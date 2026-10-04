@@ -1,34 +1,54 @@
-local Game = batteries.class { name = "microgame.ssi_swing" }
 local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
-local Input = require("input")
+local GameBase = require("microgame.base")
 
----@param speed number Number of seconds removed from the timer.
----@param level number Difficulty level starting from 0. Increases after each boss round.
-function Game:new(speed, level)
-    self.verb = "Swing!"
-    self.backgroundColor = { 0.0, 0.5, 0.0 }
+---@class _ssi_swing: microgame.Game
+local Game = batteries.class {
+    name = "microgame.ssi_swing",
+    extends = GameBase
+}
+
+---@param mgr microgame.Manager
+function Game:new(mgr)
+    self:super(mgr)
+
+    self.verb = "Defend!"
 
     local resRoot = "/res/microgames/ssi_swing/"
 
-    self.bgImg = Lg.newImage(resRoot .. "bg.png")
-    self.shadowImg = Lg.newImage(resRoot .. "shadow16x8.png")
+    self.bgImg =
+        self:releaseOnUnload( Lg.newImage(resRoot .. "bg.png") )
+    self.shadowImg =
+        self:releaseOnUnload( Lg.newImage(resRoot .. "shadow16x8.png") )
 
-    self.sndOctoAlert = love.audio.newSource(resRoot .. "octopus_alert.wav", "static")
-    self.sndOctoDive = love.audio.newSource(resRoot .. "octopus_dive.wav", "static")
-    self.sndOctoKill = love.audio.newSource(resRoot .. "octopus_kill.wav", "static")
-    self.sndPlrHurt = love.audio.newSource(resRoot .. "player_hurt.wav", "static")
-    self.sndPlrSwing = love.audio.newSource(resRoot .. "player_swing.wav", "static")
-    self.music = love.audio.newSource(resRoot .. "evildrone.ogg", "stream")
+    local soundRes = {
+        octoAlert = "octopus_alert.wav",
+        octoDive  = "octopus_dive.wav",
+        octoKill  = "octopus_kill.wav",
+        plrHurt   = "player_hurt.wav",
+        plrSwing  = "player_swing.wav",
+        win       = "win.wav",
+    }
+
+    ---@type {[string]: love.Source}
+    self.snd = {}
+    for k, v in pairs(soundRes) do
+        self.snd[k] =
+            self:releaseOnUnload(mgr:newAudioSource(resRoot .. v, "static"))
+    end
+
+    self.music = mgr:newAudioSource(resRoot .. "evildrone.ogg", "stream")
+    self:releaseOnUnload(self.music)
     self.music:setLooping(true)
     self.music:seek(love.math.random() * 2)
     self.music:play()
-    self.sndWin = love.audio.newSource(resRoot .. "win.wav", "static")
 
     self.robotSpr = Sprite.new(resRoot .. "sprites/robot.json")
+    self:releaseOnUnload(self.robotSpr)
     self.robotSpr.alignment = "center"
 
     self.octoSpr = Sprite.new(resRoot .. "sprites/flying_enemy.json")
+    self:releaseOnUnload(self.octoSpr)
     self.octoSpr.alignment = "center"
     self.octoSpr:play("idle")
 
@@ -48,27 +68,6 @@ function Game:new(speed, level)
     self.timer = 0
 end
 
-function Game:release()
-    self.bgImg:release()
-    self.shadowImg:release()
-    self.sndOctoAlert:stop()
-    self.sndOctoAlert:release()
-    self.sndOctoDive:stop()
-    self.sndOctoDive:release()
-    self.sndOctoKill:stop()
-    self.sndOctoKill:release()
-    self.sndPlrHurt:stop()
-    self.sndPlrHurt:release()
-    self.sndPlrSwing:stop()
-    self.sndPlrSwing:release()
-    self.music:stop()
-    self.music:release()
-    self.sndWin:stop()
-    self.sndWin:release()
-    self.robotSpr:release()
-    self.octoSpr:release()
-end
-
 function Game:tick()
     self.robotSpr:update(App.tickLength)
     self.octoSpr:update(App.tickLength)
@@ -84,7 +83,7 @@ function Game:tick()
         if self.robotSpr.curAnim == "melee_attack" then
             local frame = self.robotSpr:getAnimFrame()
             if frame == 8 then
-                self.sndPlrSwing:play()
+                self.snd.plrSwing:play()
             end
 
             if frame >= 9 and frame <= 12 then
@@ -94,7 +93,7 @@ function Game:tick()
             self.isSwinging = false
         end
     elseif self.robotSpr.curAnim == "idle" then
-        if Input.players[1]:pressed("gameButton") then
+        if self.manager:isButtonPressed() then
             self.isSwinging = true
             self.robotSpr:play("melee_attack")
         end
@@ -114,7 +113,7 @@ function Game:tick()
             self.octoTicker = 30
 
             self.octoVx = 3
-            self.sndOctoAlert:play()
+            self.snd.octoAlert:play()
         end
     
     -- windup
@@ -125,7 +124,7 @@ function Game:tick()
             self.octoStage = "dive"
             self.octoTicker = 120
 
-            self.sndOctoDive:play()
+            self.snd.octoDive:play()
         end
 
         self.octoVx = self.octoVx * 0.91
@@ -135,10 +134,10 @@ function Game:tick()
         self.octoVx = -2
         
         if isPlrAttackActive and self.octoX < 25 then
-            self.sndOctoKill:play()
+            self.snd.octoKill:play()
             self.octoStage = "dead"
             self.octoSpr:play("dead")
-            self.sndWin:play()
+            self.snd.win:play()
             self.music:stop()
             self.octoVx = 2.5
             self.octoVy = 2
@@ -146,7 +145,7 @@ function Game:tick()
             self.octoVx = 2
             self.octoStage = "rebound"
             self.octoTicker = 60
-            self.sndPlrHurt:play()
+            self.snd.plrHurt:play()
             self.robotSpr:play("hurt")
             self.plrOx = -6
         end
@@ -160,7 +159,7 @@ function Game:tick()
             self.octoStage = "windup"
             self.octoTicker = 30
             self.octoVx = 3
-            self.sndOctoAlert:play()
+            self.snd.octoAlert:play()
         end
     
     elseif self.octoStage == "dead" then
@@ -207,4 +206,4 @@ function Game:draw()
     self.octoSpr:draw(octoX, self.yBase - octoY - 26, 0, 2, 2)
 end
 
-return Game --[[@as Microgame]]
+return Game
