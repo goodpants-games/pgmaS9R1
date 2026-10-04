@@ -5,7 +5,11 @@ local FontRes = require("fontres")
 local scene = Sceneman.scene()
 local self
 
-local GAME_SET = {"ssi_swing", "bounce", "test1", "test2"}
+local GAME_SET = {
+    "ssi_swing",
+    "bounce",
+    "fruit_catch",
+}
 
 local function loadMicrogame(name)
     local gameCtor = self.gameCache[name]
