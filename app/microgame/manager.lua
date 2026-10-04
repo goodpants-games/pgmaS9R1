@@ -20,7 +20,7 @@ function GameManager:new()
     self.game = nil
 
     self.timer = 0.0
-    self.gameSpeed = 1.0
+    self.tickSpeed = 1.0
 
     ---@private
     self._audioSrcReleaseFn = function(this)
@@ -42,7 +42,7 @@ end
 
 ---Create a new audio source. Always use this instead of love.audio.newSource
 ---for audio in a microgame, so that its pitch can be scaled according to the
----gameSpeed variable.
+---tickSpeed variable.
 ---@param path string
 ---@param sourceType "static"|"stream"
 function GameManager:newAudioSource(path, sourceType)
@@ -124,8 +124,8 @@ end
 
 function GameManager:tick()
     if self.game then
-        self._timeAccum = self._timeAccum + self.gameSpeed
-        self:_setAudioPitchScale(self.gameSpeed)
+        self._timeAccum = self._timeAccum + self.tickSpeed
+        self:_setAudioPitchScale(self.tickSpeed)
 
         while self._timeAccum >= 1.0 do
             self._btnState[2] = self._btnState[1]

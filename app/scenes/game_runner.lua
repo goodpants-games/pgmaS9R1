@@ -84,11 +84,11 @@ function scene.tick()
         self.verbTextTimer = self.verbTextTimer - App.tickLength
     end
 
-    self.gameTimer = self.gameTimer - App.tickLength * self.gameManager.gameSpeed
+    self.gameTimer = self.gameTimer - App.tickLength * self.gameManager.tickSpeed
     if self.gameTimer < 0 then
         self.gameTimer = 0
         self.nextMicrogameToLoad = getNextMicrogame()
-        -- self.gameManager.gameSpeed = self.gameManager.gameSpeed + 0.5
+        -- self.gameManager.tickSpeed = self.gameManager.tickSpeed + 0.5
     end
 end
 
