@@ -115,7 +115,7 @@ def scan_directory(dirpath: str) -> bool:
     dst_dir = os.path.normpath(os.path.join('app', 'res', dirpath))
 
     if not os.path.exists(src_dir): return succ
-    for basename in os.listdir(src_dir):
+    for basename in sorted(os.listdir(src_dir)):
         path = os.path.join(src_dir, basename)
 
         if os.path.isdir(path):
