@@ -72,10 +72,19 @@ end
 function love.load(args)
     love.keyboard.setTextInput(false)
 
-    for _, arg in ipairs(args) do
-        if arg == "--debug" then
-            Debug.enabled = true
-            print("enable debug")
+    local initMicrogame
+    if Debug.enabled then
+        local argi = 1
+        while argi <= #args do
+            local arg = args[argi]
+            if arg == "--microgame" then
+                argi = argi + 1
+                arg = args[argi]
+                
+                initMicrogame = arg
+            end
+
+            argi = argi + 1
         end
     end
 
@@ -83,7 +92,13 @@ function love.load(args)
 
     Lg.setFont(fontres.monogram)
 	
-    Sceneman.switchScene("game_runner")
+    if initMicrogame then
+        Sceneman.switchScene("game_runner", {
+            initMicrogame = initMicrogame
+        })
+    else
+        Sceneman.switchScene("game_runner", {})
+    end
 end
 
 ---@diagnostic disable-next-line duplicate-set-field
