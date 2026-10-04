@@ -5,6 +5,8 @@ local FontRes = require("fontres")
 local scene = Sceneman.scene()
 local self
 
+local GAME_SET = {"ssi_swing", "bounce", "test1", "test2"}
+
 local function loadMicrogame(name)
     local gameCtor = self.gameCache[name]
     if not gameCtor then
@@ -32,7 +34,7 @@ local function getNextMicrogame()
     return self.gameSet[love.math.random(1, #self.gameSet)]
 end
 
-function scene.load()
+function scene.load(data)
     self = {}
 
     Lg.setBackgroundColor(0.5, 0.5, 0.5)
@@ -45,9 +47,13 @@ function scene.load()
     ---@type {[string]:microgame.Game}
     self.gameCache = {}
 
-    self.gameSet = {"ssi_swing", "test1"}
+    if data.initMicrogame then
+        self.gameSet = {data.initMicrogame}
+    else
+        self.gameSet = GAME_SET
+    end
     self.nextMicrogameToLoad = getNextMicrogame()
-    
+
     self.gameManager = GameManager()
 end
 
