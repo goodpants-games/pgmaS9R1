@@ -33,6 +33,21 @@ function Game:new(mgr)
 
     self.startTimer = 1
     self.win = true
+
+    local resRoot = "/res/microgames/bounce/"
+    self.snd = {
+        fail = mgr:newAudioSource(resRoot.."fail.wav", "static"),
+        paddleBounce = mgr:newAudioSource(resRoot.."paddle_bounce.wav", "static"),
+        wallBounce = mgr:newAudioSource(resRoot.."wall_bounce.wav", "static"),
+    }
+    for _, v in pairs(self.snd) do
+        self:releaseOnUnload(v)
+    end
+
+    self.music = mgr:newAudioSource(resRoot.."music.ogg", "stream")
+    self:releaseOnUnload(self.music)
+    self.music:setVolume(0.5)
+    self.music:play()
 end
 
 function Game:tick()
@@ -63,17 +78,26 @@ function Game:tick()
             self.ballVy = self.ballVy + 0.05
 
             -- edge collision
+            local playWallBounce = false
             if self.ballX - self.ballR < 0 then
                 self.ballX = self.ballR
                 self.ballVx = -self.ballVx
+                playWallBounce = true
             end
             if self.ballY - self.ballR < 0 then
                 self.ballY = self.ballR
                 self.ballVy = -self.ballVy
+                playWallBounce = true
             end
             if self.ballX + self.ballR > GameConf.scrW then
                 self.ballX = GameConf.scrW - self.ballR
                 self.ballVx = -self.ballVx
+                playWallBounce = true
+            end
+
+            if playWallBounce and self.win then
+                self.snd.wallBounce:setPitch(love.math.random() * 0.2 + 1.0)
+                self.snd.wallBounce:play()
             end
 
             self:_ball_paddle_collision()
@@ -84,6 +108,10 @@ function Game:tick()
     self.ballSquash = self.ballSquash + self.ballSquashVel
 
     if self.ballY > GameConf.scrH then
+        if self.win then
+            self.snd.fail:play()
+        end
+
         self.win = false
         self.paddleFrozen = true
     end
@@ -123,8 +151,10 @@ function Game:_ball_paddle_collision()
             end
 
             self.ballSquash = -0.5
-
             self.paddleFrozen = false
+
+            self.snd.paddleBounce:setPitch(love.math.random() * 0.2 + 0.9)
+            self.snd.paddleBounce:play()
         end
     end
 end
