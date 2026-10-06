@@ -39,7 +39,7 @@ function Game:new(mgr)
     local maxAng = -math.pi / 2 + AIM_MAX_ANGLE
 
     local newestCheckpoint
-    for _=1, 2 do
+    for _=1, math.min(2, self.manager.difficulty + 1) do
         local newX, newY
         while true do
             local ang = math.lerp(minAng, maxAng, love.math.random())
