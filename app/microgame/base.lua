@@ -5,6 +5,7 @@
 ---@field win boolean
 ---@field verb string
 ---@field backgroundColor number[]
+---@field resRoot string
 local Base = batteries.class { name = "microgame.GameBase" }
 
 ---@param mgr microgame.Manager
@@ -16,6 +17,8 @@ function Base:new(mgr)
     ---@private
     ---@type love.Object[]
     self._tempResources = {}
+
+    self.resRoot = "/res/"
 end
 
 ---@generic T
@@ -39,6 +42,12 @@ function Base:unload()
         end
         res:release()
     end
+end
+
+---@param path string
+---@return string
+function Base:getRes(path)
+    return self.resRoot .. "/" .. path
 end
 
 return Base
