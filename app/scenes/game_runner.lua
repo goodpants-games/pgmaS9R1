@@ -10,6 +10,7 @@ local GAME_SET = {
     "ssi_swing",
     "bounce",
     "fruit_catch",
+    "sling",
     "test1",
     "test2",
 }
@@ -120,7 +121,7 @@ function scene.tick()
     if self.gameTimer < 0 then
         self.gameTimer = 0
         self.nextMicrogameToLoad = getNextMicrogame()
-        -- self.gameManager.tickSpeed = self.gameManager.tickSpeed + 0.5
+        self.gameManager.tickSpeed = self.gameManager.tickSpeed + 0.5
     end
 end
 
