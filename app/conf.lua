@@ -2,7 +2,7 @@
 -- CONFIGURATION
 --------------------------------------------------------------------------------
 
-require("compat.luaenv")
+require("compat.lua")
 
 -- this is to make a lua debugger extension work
 if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
