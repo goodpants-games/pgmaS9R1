@@ -15,12 +15,17 @@ function Game:new(mgr)
 
     self.paddleRest = 160.0
 
-    self.paddleW = 32
+    -- self.manager.speed = 2
+    -- self.manager.difficulty = 2
+
+    self.paddleW = 40 - self.manager.difficulty * 8
     self.paddleH = 4
     self.paddleX = math.round((GameConf.scrW - self.paddleW) / 2.0)
     self.paddleY = 160.0
     self.paddleVx = 0.0
     self.paddleVy = 0.0
+    self.paddleR = 0.0
+    self.paddleRv = 0.0
     self.paddleFrozen = true
 
     self.ballX = GameConf.scrW / 2
@@ -30,6 +35,7 @@ function Game:new(mgr)
     self.ballR = 8.0
     self.ballSquash = 0.0
     self.ballSquashVel = 0.0
+    self.ballG = 0.05 * (self.manager.speed * 0.2 + 1)
 
     self.startTimer = 1
     self.win = true
@@ -63,9 +69,11 @@ function Game:tick()
         self.paddleY = self.paddleY + self.paddleVy
 
         self.paddleVy = self.paddleVy + (self.paddleRest - self.paddleY) * 0.1 - self.paddleVy * 0.1
-
         self.paddleX = math.clamp(self.paddleX, 0, GameConf.scrW - self.paddleW)
     end
+
+    self.paddleRv = self.paddleRv + (0 - self.paddleR) * 0.08 - self.paddleRv * 0.05
+    self.paddleR = self.paddleR + self.paddleRv
 
     -- ball kinematics
     if self.startTimer > 0 then
@@ -75,7 +83,7 @@ function Game:tick()
             self.ballX = self.ballX + self.ballVx / 4
             self.ballY = self.ballY + self.ballVy / 4
 
-            self.ballVy = self.ballVy + 0.05
+            self.ballVy = self.ballVy + self.ballG
 
             -- edge collision
             local playWallBounce = false
@@ -140,9 +148,21 @@ function Game:_ball_paddle_collision()
             self.paddleVx = self.paddleVx - nx * ballSpd * 0.5
             self.paddleVy = self.paddleVy - ny * ballSpd * 0.5
 
+            -- calculate torque on paddle
+            local centerDx = contactX - (self.paddleX + self.paddleW/2)
+            local centerDy = contactY - (self.paddleY + self.paddleH/2)
+            local angleFac = centerDx * -ny + centerDy * nx            
+            self.paddleRv = self.paddleRv - angleFac * vdot * 0.001
+            -- local perpX = -ny
+            -- local perpY = nx
+            -- local perpDist = (self.ballX - self.paddleX) * perpX
+            --                  + (self.ballY - self.paddleY) * perpY
+            
+
             if nx == 0.0 and ny == -1.0 then
                 local ofsFromCenter = self.ballX - (self.paddleX + self.paddleW / 2.0)
                 local ang = ofsFromCenter * math.rad(2.0)
+                ang = ang * (self.manager.difficulty * 0.5 + 1)
 
                 self.ballVx = math.sin(ang) * ballSpd
                 self.ballVy = -math.cos(ang) * ballSpd
@@ -164,7 +184,13 @@ end
 function Game:draw()
     -- draw paddle
     Lg.setColor(1, 1, 1)
-    Lg.rectangle("fill", self.paddleX, self.paddleY, self.paddleW, self.paddleH)
+    Lg.push()
+    Lg.translate(
+        math.round(self.paddleX + self.paddleW/2),
+        math.round(self.paddleY + self.paddleH/2))
+    Lg.rotate(self.paddleR)
+    Lg.rectangle("fill", math.round(-self.paddleW/2), math.round(-self.paddleH/2), self.paddleW, self.paddleH)
+    Lg.pop()
 
     -- draw ball
     Lg.setColor(1, 1, 1)
