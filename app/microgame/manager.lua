@@ -3,6 +3,7 @@ local GameConf = require("microgame.conf")
 local Input = require("input")
 
 ---@class microgame.Manager
+---Microgame runner
 ---@overload fun():microgame.Manager
 local GameManager = batteries.class { name = "microgame.Manager" }
 
