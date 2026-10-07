@@ -1,0 +1,13 @@
+microgame ideas:
+- jelpi (from PICO-8) autorunner, maybe two height levels you can jump or
+  fall onto. and you have to dodge enemies.
+  i guess this would require ripping/tracing the sprites straight from that game...
+- think of references to other pgma games
+- spotlight that eventually shines light on thing and you need to press space to hide it the moment you see it
+  like maybe you're a ghost. make sure to punish the player for pressing space too early.
+  does this even make sense idk
+- found this juniper dev game jam entry called "death spiral" if yk what i mean...
+  steal its mechanics. maybe could be a boss stage?
+- maybe game about holding and releasing the button, like pulling something back and releasing
+  a bow? maybe you have to control the power of your shot.
+- minigame concerning mashing a button quick enough
