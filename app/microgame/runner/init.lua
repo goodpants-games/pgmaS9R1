@@ -49,6 +49,7 @@ function Runner:new(params)
     self.gameManager = GameManager()
 
     self.lives = 4
+    self.gameCount = 1
 
     ---@type {[string]:any}
     self.res = {}
@@ -62,7 +63,7 @@ function Runner:new(params)
     self.scrX = math.floor((App.scrW - GameConf.scrW) / 2)
     self.scrY = math.floor((App.scrH - GameConf.scrH) / 2)
 
-    self:_switchState("play")
+    self:_switchState("enterGame")
 end
 
 function Runner:release()
@@ -77,6 +78,8 @@ end
 
 ---@param dt number
 function Runner:update(dt)
+    self.gameManager:update(dt)
+    
     if self.state and self.state.update then
         self.state:update(dt)
     end
@@ -105,8 +108,16 @@ function Runner:draw()
         local x = 2
         local y = 2 + (i-1) * 24
 
+        Lg.setColor(1, 1, 1)
         Lg.draw(self.res.lifeImg, x, y)
     end
+
+    -- draw bomb
+    Lg.setScissor(0, 0, self.scrX, App.scrH)
+    Lg.setColor(1, 1, 1)
+    self.res.bombSpr:drawCel(1, 2, 153)
+    self.res.bombSpr:drawCel(2, 2, 153)
+    Lg.setScissor()
 end
 
 ---@param newState string
@@ -176,9 +187,58 @@ end
 
 
 
+--------------------------------------------------------------------------------
+--- STATE: enterGame
+--------------------------------------------------------------------------------
+---@class microgame.Runner.EnterGameState: microgame.Runner.State
+local EnterGameState = batteries.class {
+    name = "microgame.Runner.EnterGameState"
+}
+runStates.enterGame = EnterGameState
+
+---@param runner microgame.Runner
+function EnterGameState:new(runner)
+    self.runner = runner
+    self.time = 0
+end
+
+function EnterGameState:tick()
+    local runner = self.runner
+
+    if self.time == 60 then
+        runner:_switchState("play")
+    end
+
+    self.time = self.time + 1
+end
+
+function EnterGameState:draw()
+    local runner = self.runner
+    local scrX, scrY = runner.scrX, runner.scrY
+
+    Lg.push()
+    Lg.translate(scrX, scrY)
+
+    Lg.setColor(0, 0, 0)
+    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
+
+    Lg.setColor(1, 1, 1)
+    Lg.print(tostring(runner.gameCount), 10, 10)
+
+    Lg.pop()
+end
+
+
+
+
+
+
+
+
+
 
 --------------------------------------------------------------------------------
---- STATE: PLAY
+--- STATE: play
 --------------------------------------------------------------------------------
 ---@class microgame.Runner.PlayState: microgame.Runner.State
 local PlayState = batteries.class {
@@ -197,11 +257,13 @@ end
 
 ---@param dt number
 function PlayState:update(dt)
-    self.runner.gameManager:update(dt)
+    
 end
 
 function PlayState:exit()
-    self.runner.gameManager:unloadGame()
+    local runner = self.runner
+    runner.gameCount = runner.gameCount + 1
+    runner.gameManager:unloadGame()
 end
 
 function PlayState:tick()
@@ -214,7 +276,7 @@ function PlayState:tick()
 
     self.gameTimer = self.gameTimer - App.tickLength * runner.gameManager.tickSpeed
     if self.gameTimer < 0 then
-        runner:_switchState("play")
+        runner:_switchState("enterGame")
 
         -- if not self.gameManager.game.win then
         --     self.lives = self.lives - 1
@@ -253,9 +315,6 @@ function PlayState:draw()
         Lg.draw(runner.verbText, drawX, drawY)
     end
 
-    -- draw bomb
-    Lg.setColor(1, 1, 1)
-    runner.res.bombSpr:drawCel(1, 2, 153)
     -- timer bar
     Lg.setColor(batteries.color.unpack_rgb(0xffffff))
     runner.res.bombSpr:drawCel(2, 2, 153)
