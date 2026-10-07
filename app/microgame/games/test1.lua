@@ -13,6 +13,7 @@ function Game:new(mgr)
 
     self.verb = "Test 1!"
     self.backgroundColor = { 0.0, 0.5, 0.0 }
+    self.win = true
 
     self.spr = Sprite.new("res/sprites/placeholder.json")
     self:releaseOnUnload(self.spr)

@@ -11,9 +11,10 @@ local Game = batteries.class {
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    
+
     self.verb = "Test 2!"
     self.backgroundColor = { 0.0, 0.0, 0.5 }
+    self.win = true
 
     self.spr = Sprite.new("res/sprites/placeholder.json")
     self:releaseOnUnload(self.spr)
