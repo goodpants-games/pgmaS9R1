@@ -1,6 +1,7 @@
 local GameConf = require("microgame.conf")
 local GameManager = require("microgame.manager")
 local FontRes = require("fontres")
+local Sprite = require("sprite")
 
 local scene = Sceneman.scene()
 local self
@@ -39,6 +40,14 @@ function scene.load(data)
     self.nextMicrogameToLoad = getNextMicrogame()
 
     self.gameManager = GameManager()
+
+    self.lives = 4
+
+    ---@type {[string]:any}
+    self.res = {}
+    self.res.lifeImg = Lg.newImage("/res/img/life.png")
+    self.res.bombSpr = Sprite.new("/res/sprites/bomb.json")
+    self.res.bombSpr.alignment = "topleft"
 end
 
 -- (local)
@@ -95,6 +104,12 @@ local function loadMicrogame(name)
 end
 
 function scene.unload()
+    for _, res in pairs(self.res) do
+        if res.release then
+            res:release()
+        end    
+    end
+
     self.canvas:release()
 
     self = nil
@@ -121,7 +136,14 @@ function scene.tick()
     if self.gameTimer < 0 then
         self.gameTimer = 0
         self.nextMicrogameToLoad = getNextMicrogame()
-        self.gameManager.tickSpeed = self.gameManager.tickSpeed + 0.5
+
+        if not self.gameManager.game.win then
+            self.lives = self.lives - 1
+            if self.lives == 0 then
+                love.window.showMessageBox("Loser", "you lost", "info", true)
+            end
+        end
+        -- self.gameManager.tickSpeed = self.gameManager.tickSpeed + 0.5
     end
 end
 
@@ -152,12 +174,25 @@ function scene.draw()
         Lg.draw(self.verbText, drawX, drawY)
     end
 
-    -- draw timer bar
+    -- draw lives counter
+    for i=1, self.lives do
+        local x = 2
+        local y = 2 + (i-1) * 24
+
+        Lg.draw(self.res.lifeImg, x, y)
+    end
+
+    -- draw bomb
+    Lg.setColor(1, 1, 1)
+    self.res.bombSpr:drawCel(1, 2, 153)
+    -- timer bar
+    Lg.setColor(batteries.color.unpack_rgb(0xffffff))
+    self.res.bombSpr:drawCel(2, 2, 153)
     if self.gameTimer <= GameConf.refGameLength then
+
         local progress = self.gameTimer / GameConf.refGameLength
         local barWidth = GameConf.scrW * progress
-        Lg.setColor(1, 0, 0)
-        Lg.rectangle("fill", scrX, App.scrH - 8, barWidth, 8)
+        Lg.rectangle("fill", 33 + 2, 153+21, barWidth, 4)
     end
 end
 
