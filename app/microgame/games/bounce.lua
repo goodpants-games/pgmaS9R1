@@ -1,6 +1,9 @@
 local GameBase = require("microgame.base")
 local GameConf = require("microgame.conf")
 
+-- TODO: i swear sometimes the ball touches the top but then gets reflected
+--       downwarsd? what??
+
 ---@class _pong: microgame.Game
 local Game = batteries.class {
     name = "microgame.pong",
@@ -28,14 +31,21 @@ function Game:new(mgr)
     self.paddleRv = 0.0
     self.paddleFrozen = true
 
-    self.ballX = GameConf.scrW / 2
+    local ballSpawnDir
+    if love.math.random() > 0.5 then
+        ballSpawnDir = 1
+    else
+        ballSpawnDir = -1
+    end
+    local ballSpawnOfs = math.lerp(0.6, 1.0, love.math.random())
+    self.ballX = GameConf.scrW / 2 + ballSpawnDir*ballSpawnOfs * self.paddleW*0.4
     self.ballY = 20.0
     self.ballVx = 0.0
     self.ballVy = 0.0
     self.ballR = 8.0
     self.ballSquash = 0.0
     self.ballSquashVel = 0.0
-    self.ballG = 0.05 * (self.manager.speed * 0.2 + 1)
+    self.ballG = 0.05 * (self.manager.speed * 0.5 + 1)
 
     self.startTimer = 1
     self.win = true
@@ -151,17 +161,13 @@ function Game:_ball_paddle_collision()
             -- calculate torque on paddle
             local centerDx = contactX - (self.paddleX + self.paddleW/2)
             local centerDy = contactY - (self.paddleY + self.paddleH/2)
-            local angleFac = centerDx * -ny + centerDy * nx            
+            local angleFac = centerDx * -ny + centerDy * nx
             self.paddleRv = self.paddleRv - angleFac * vdot * 0.001
-            -- local perpX = -ny
-            -- local perpY = nx
-            -- local perpDist = (self.ballX - self.paddleX) * perpX
-            --                  + (self.ballY - self.paddleY) * perpY
             
-
-            if nx == 0.0 and ny == -1.0 then
+            if self.paddleFrozen then
+                local ang
                 local ofsFromCenter = self.ballX - (self.paddleX + self.paddleW / 2.0)
-                local ang = ofsFromCenter * math.rad(2.0)
+                ang = ofsFromCenter * math.rad(2.0)
                 ang = ang * (self.manager.difficulty * 0.5 + 1)
 
                 self.ballVx = math.sin(ang) * ballSpd
