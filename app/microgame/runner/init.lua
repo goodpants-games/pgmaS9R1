@@ -13,6 +13,24 @@ local GAME_SET = {
     "test2",
 }
 
+local BOSS_ROUND_INTERVAL = 20
+
+local SPEED_UP_POINTS = {
+    -- level 1
+    { 10, 16 },
+    -- level 2
+    { 9, 15 },
+    -- level 3
+    { 7, 14 }
+}
+
+if Debug.enabled then
+    print("INSERT DEBUG SPEED UP POINTS")
+    for i=1, 3 do
+        table.insert(SPEED_UP_POINTS, 1, { 2, 5 })
+    end
+end
+
 ---@class microgame.Runner: batteries.Class
 ---@overload fun(params:table):microgame.Runner
 ---UI for the game
@@ -47,9 +65,12 @@ function Runner:new(params)
     self.nextMicrogameToLoad = self:_getNextMicrogame()
 
     self.gameManager = GameManager()
+    self.gameManager.difficulty = 1
 
     self.lives = 4
-    self.gameCount = 1
+    self.gamesCompleted = 0
+    -- current game within difficulty level
+    self.round = 0
 
     ---@type {[string]:any}
     self.res = {}
@@ -157,8 +178,6 @@ function Runner:_getNextMicrogame()
     local selectedGame = table.remove(self.gameList, selectIdx)
     table.insert(self.gameList, selectedGame)
 
-    batteries.pretty.print(self.gameList)
-
     return selectedGame
 end
 
@@ -176,6 +195,8 @@ function Runner:_loadMicrogame(name)
         gameCtor = chunk() --[[@as microgame.Game]]
         self.gameCache[name] = gameCtor
     end
+
+    print(("enter game '%s'"):format(name))
 
     -- initialize microgame
     self.gameManager:loadGame(gameCtor)
@@ -203,10 +224,20 @@ runStates.enterGame = EnterGameState
 function EnterGameState:new(runner)
     self.runner = runner
     self.time = 0
+    
+    runner.round = runner.round + 1
 
     -- ouch
     if runner.lostGame then
         runner.lives = runner.lives - 1
+    end
+
+    local gameMgr = runner.gameManager
+    local levelData = SPEED_UP_POINTS[gameMgr.difficulty + 1]
+
+    self.speedUp = table.index_of(levelData, runner.round) ~= nil
+    if self.speedUp then
+        gameMgr.speed = gameMgr.speed + 1
     end
 end
 
@@ -231,7 +262,11 @@ function EnterGameState:draw()
     Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
 
     Lg.setColor(1, 1, 1)
-    Lg.print(tostring(runner.gameCount), 10, 10)
+    Lg.print(tostring(runner.gamesCompleted + 1), 10, 10)
+
+    if self.speedUp then
+        Lg.print("SPEED UP!", 10, 30)
+    end
 
     Lg.pop()
 end
@@ -258,7 +293,8 @@ runStates.play = PlayState
 function PlayState:new(runner)
     self.runner = runner
     self.verbTextTimer = 1.0
-    self.gameTimer = GameConf.refGameLength
+    self.gameTimerMax = GameConf.refGameLength - runner.gameManager.speed * 1
+    self.gameTimer = self.gameTimerMax
 
     runner:_loadMicrogame(runner:_getNextMicrogame())
 end
@@ -270,7 +306,7 @@ end
 
 function PlayState:exit()
     local runner = self.runner
-    runner.gameCount = runner.gameCount + 1
+    runner.gamesCompleted = runner.gamesCompleted + 1
     runner.gameManager:unloadGame()
 end
 
@@ -328,7 +364,7 @@ function PlayState:draw()
     Lg.setColor(batteries.color.unpack_rgb(0xffffff))
     runner.res.bombSpr:drawCel(2, 2, 153)
     if self.gameTimer <= GameConf.refGameLength then
-        local progress = self.gameTimer / GameConf.refGameLength
+        local progress = self.gameTimer / self.gameTimerMax
         local barWidth = GameConf.scrW * progress
         Lg.rectangle("fill", 33 + 2, 153+21, barWidth, 4)
     end
