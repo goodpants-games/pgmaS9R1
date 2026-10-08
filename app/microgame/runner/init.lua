@@ -65,7 +65,6 @@ function Runner:new(params)
     self.nextMicrogameToLoad = self:_getNextMicrogame()
 
     self.gameManager = GameManager()
-    self.gameManager.difficulty = 1
 
     self.lives = 4
     self.gamesCompleted = 0
