@@ -1,6 +1,9 @@
 local GameBase = require("microgame.base")
 local GameConf = require("microgame.conf")
 
+-- TODO! limit max angle away from 1->2 checkpoint on fastest speed setting
+--       otherwise it may be impossible for the player to win
+
 local GRAVITY = 0.45
 local LAUNCH_POWER = 9
 local AIM_ANGLE_DELTA = math.rad(1.2)
@@ -32,6 +35,10 @@ function Game:new(mgr)
     self.throwAng = -math.pi / 2
     self.throwTicker = 0
 
+    local speedFac = 1.0 + mgr.speed * 0.5
+    self.aimPhaseLength = math.round(AIM_PHASE_LENGTH / speedFac)
+    self.aimAngleDelta = AIM_ANGLE_DELTA * (AIM_PHASE_LENGTH / self.aimPhaseLength)
+
     self.checkpoints = {}
     local baseX = self.plrX
     local baseY = self.plrY
@@ -39,9 +46,9 @@ function Game:new(mgr)
     local maxAng = -math.pi / 2 + AIM_MAX_ANGLE
 
     local newestCheckpoint
-    for _=1, math.min(2, self.manager.difficulty + 1) do
+    for ci=1, math.min(2, self.manager.difficulty + 1) do
         local newX, newY
-        while true do
+        for j=1, 1000 do -- max iterations in case something very bad happens
             local ang = math.lerp(minAng, maxAng, love.math.random())
             local vx = math.cos(ang) * LAUNCH_POWER
             local vy = math.sin(ang) * LAUNCH_POWER
@@ -50,12 +57,20 @@ function Game:new(mgr)
             newX, newY = self:_approximate_arc(baseX, baseY, vx, vy, time)
 
             if (newX > 20 and newX < GameConf.scrW - 20) and
-               (newY > 20)
+               (newY - vy > 20)
             then
-                break
+                goto foundPosition
             end
+
+            print("ci", ci)
+            print("newX", newX)
+            print("newY", newY)
+            print("Another iteration")
         end
 
+        softerror("Something very bad happened")
+
+        ::foundPosition::
         newX = math.round(newX)
         newY = math.round(newY)
         newestCheckpoint = self:_add_checkpoint(newX, newY)
@@ -87,15 +102,17 @@ function Game:tick()
     end
 
     if self.plrLocked then
-        if (self.throwTicker + AIM_PHASE_LENGTH / 4) % AIM_PHASE_LENGTH < AIM_PHASE_LENGTH / 2 then
-            self.throwAng = self.throwAng + AIM_ANGLE_DELTA
+        local aimPhaseLen = self.aimPhaseLength
+        local aimAngDelta = self.aimAngleDelta
+        if (self.throwTicker + aimPhaseLen / 4) % aimPhaseLen < aimPhaseLen / 2 then
+            self.throwAng = self.throwAng + aimAngDelta
         else
-            self.throwAng = self.throwAng - AIM_ANGLE_DELTA
+            self.throwAng = self.throwAng - aimAngDelta
         end
 
         -- self.plrX = App.mousex
         -- self.plrY = App.mousey
-        self.throwTicker = (self.throwTicker + 1) % AIM_PHASE_LENGTH
+        self.throwTicker = (self.throwTicker + 1) % aimPhaseLen
 
         if self.manager:isButtonPressed() then
             self.plrLocked = false
