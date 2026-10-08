@@ -63,6 +63,9 @@ function Runner:new(params)
     self.scrX = math.floor((App.scrW - GameConf.scrW) / 2)
     self.scrY = math.floor((App.scrH - GameConf.scrH) / 2)
 
+    -- god damnit
+    self.lostGame = false
+
     self:_switchState("enterGame")
 end
 
@@ -200,6 +203,11 @@ runStates.enterGame = EnterGameState
 function EnterGameState:new(runner)
     self.runner = runner
     self.time = 0
+
+    -- ouch
+    if runner.lostGame then
+        runner.lives = runner.lives - 1
+    end
 end
 
 function EnterGameState:tick()
@@ -269,6 +277,7 @@ end
 function PlayState:tick()
     local runner = self.runner
     runner.gameManager:tick()
+    runner.lostGame = not runner.gameManager.game.win
 
     if self.verbTextTimer > 0.0 then
         self.verbTextTimer = self.verbTextTimer - App.tickLength
