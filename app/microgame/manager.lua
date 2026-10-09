@@ -59,6 +59,11 @@ function GameManager:isButtonPressed()
 end
 
 ---@return boolean
+function GameManager:isButtonReleased()
+    return not self._btnState[1] and self._btnState[2]
+end
+
+---@return boolean
 function GameManager:isButtonDown()
     return self._btnState[1]
 end
