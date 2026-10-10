@@ -149,6 +149,12 @@ function GameManager:update(dt)
     if device:released("gameButton") then
         self._queueBtnRelease = true
     end
+
+    ---@diagnostic disable-next-line
+    if self.game and self.game.update then
+        ---@diagnostic disable-next-line
+        self.game:update(dt)
+    end
 end
 
 function GameManager:tick()
