@@ -72,16 +72,22 @@ end
 function love.load(args)
     love.keyboard.setTextInput(false)
 
-    local initMicrogame
+    local initParams = {}
     if Debug.enabled then
         local argi = 1
         while argi <= #args do
             local arg = args[argi]
             if arg == "--microgame" then
                 argi = argi + 1
-                arg = args[argi]
-                
-                initMicrogame = arg
+                initParams.initMicrogame = args[argi]
+            
+            elseif arg == "--difficulty" then
+                argi = argi + 1
+                initParams.difficulty = args[argi]
+
+            elseif arg == "--speed" then
+                argi = argi + 1
+                initParams.speed = args[argi]
             end
 
             argi = argi + 1
@@ -92,10 +98,9 @@ function love.load(args)
 
     Lg.setFont(fontres.monogram)
 	
-    if initMicrogame then
-        Sceneman.switchScene("game_runner", {
-            initMicrogame = initMicrogame
-        })
+    -- if there is at least one key in initParams...
+    if next(initParams) then
+        Sceneman.switchScene("game_runner", initParams)
     else
         Sceneman.switchScene("game_runner", {})
     end
