@@ -92,6 +92,12 @@ function GameManager:loadGame(gameCtor)
 
     self.timer = GameConf.refGameLength
     self._timeAccum = 0.0
+
+    -- reset button state
+    self._btnState[1] = Input.players[1]:down("gameButton")
+    self._btnState[2] = self._btnState[1]
+    self._queueBtnPress = false
+    self._queueBtnRelease = false
 end
 
 function GameManager:unloadGame()
