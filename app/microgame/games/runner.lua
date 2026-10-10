@@ -675,12 +675,16 @@ local boostParticleDrawKinds = {
 
     -- diamond
     function(x, y)
-        Lg.points(x-1, y, x, y-1, x+1, y, x, y+1)
+        Lg.rectangle("fill", x-1, y, 1, 1)
+        Lg.rectangle("fill", x, y-1, 1, 1)
+        Lg.rectangle("fill", x+1, y, 1, 1)
+        Lg.rectangle("fill", x, y+1, 1, 1)
     end,
 
     -- diagonal line
     function(x, y)
-        Lg.points(x, y, x+1, y+1)
+        Lg.rectangle("fill", x, y, 1, 1)
+        Lg.rectangle("fill", x+1, y+1, 1, 1)
     end
 }
 
