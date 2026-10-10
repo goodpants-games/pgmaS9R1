@@ -41,7 +41,7 @@ local Runner = batteries.class {
 ---@class microgame.Runner.State
 ---@overload fun(runner:microgame.Runner, ...: any):microgame.Runner.State
 ---@field tick fun(self:microgame.Runner.State)
----@field update fun(self:microgame.Runner.State, dt:number)?
+---@field rawUpdate fun(self:microgame.Runner.State, dt:number)?
 ---@field draw fun(self:microgame.Runner.State)
 ---@field exit fun(self:microgame.Runner.State)?
 
@@ -103,10 +103,10 @@ end
 
 ---@param dt number
 function Runner:update(dt)
-    self.gameManager:update(dt)
+    self.gameManager:rawUpdate(dt)
     
-    if self.state and self.state.update then
-        self.state:update(dt)
+    if self.state and self.state.rawUpdate then
+        self.state:rawUpdate(dt)
     end
 end
 
@@ -301,7 +301,7 @@ function PlayState:new(runner)
 end
 
 ---@param dt number
-function PlayState:update(dt)
+function PlayState:rawUpdate(dt)
     
 end
 

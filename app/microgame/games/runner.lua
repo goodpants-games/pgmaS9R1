@@ -126,7 +126,7 @@ function Game:unload()
     self.__super.unload(self)
 end
 
-function Game:update()
+function Game:rawUpdate()
     if self.res.sndCharge:isPlaying() and self.res.sndCharge:getFreeBufferCount() > 0 then
         self.res.sndCharge:queue(self.res.sndCharge2)
     end

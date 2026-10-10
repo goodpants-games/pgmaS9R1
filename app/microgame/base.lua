@@ -1,7 +1,8 @@
 ---@class microgame.Game: batteries.Class
 ---@overload fun(mgr: microgame.Manager):microgame.Game
----@field tick fun()?
----@field draw fun()?
+---@field tick fun(self:microgame.Game)?
+---@field rawUpdate fun(self:microgame.Game, dt:number)?
+---@field draw fun(self:microgame.Game)?
 ---@field win boolean
 ---@field verb string
 ---@field backgroundColor number[]

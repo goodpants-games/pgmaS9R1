@@ -139,7 +139,7 @@ function GameManager:unloadGame()
 end
 
 ---@param dt number
-function GameManager:update(dt)
+function GameManager:rawUpdate(dt)
     local device = Input.players[1]
 
     if device:pressed("gameButton") then
@@ -150,10 +150,8 @@ function GameManager:update(dt)
         self._queueBtnRelease = true
     end
 
-    ---@diagnostic disable-next-line
-    if self.game and self.game.update then
-        ---@diagnostic disable-next-line
-        self.game:update(dt)
+    if self.game and self.game.rawUpdate then
+        self.game:rawUpdate(dt)
     end
 end
 
