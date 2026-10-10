@@ -102,16 +102,17 @@ function Game:new(mgr)
     self.curTick = 0
     self.tickAccum = 0
 
-    self.spawnWait = 65 - mgr.speed * 5
+    self.spawnWait = 65 - mgr.speed * 8
 
-    self.spawnTimer = 20 - mgr.speed * 3
+    self.spawnTimer = 8
 
     -- world data
     self.scrollX = 0
     self.entities = {}
-
+    
     -- initialize entities
-    self:_newEntity("player", 4, FLOOR_Y - SPR_H)
+    local moveSpeed = 1.2 * (1.0 + self.manager.speed * 0.2)
+    self:_newEntity("player", 4, FLOOR_Y - SPR_H, moveSpeed)
 end
 
 function Game:unload()
@@ -132,9 +133,6 @@ function Game:update()
 end
 
 function Game:tick()
-    -- scroll map
-    self.scrollX = self.scrollX + (1.2 * (1.0 + self.manager.speed * 0.2))
-
     -- spawn an obscatle
     if self.spawnTimer == 0 then
         self.spawnTimer = self.spawnWait
@@ -147,7 +145,7 @@ function Game:tick()
             self:_newEntity("mound", spawnX, FLOOR_Y - 8, "imgMound")
             self:_newEntity("mound", spawnX, FLOOR_Y - 72, "imgMound2")
         else
-            self:_newEntity("mound", spawnX, FLOOR_Y - 32, "imgMound")
+            self:_newEntity("mound", spawnX, FLOOR_Y - 24, "imgMound")
         end
     else
         self.spawnTimer = self.spawnTimer - 1
@@ -172,7 +170,11 @@ function Game:tick()
         end
     end
 
+    -- move + collide entities
     self:_entCollisions()
+
+    -- set scroll
+    self.scrollX = self.entities[1].x - 8
 
     -- epilogue
     self.curTick = self.curTick + 1
@@ -181,11 +183,13 @@ end
 function Game:draw()
     Lg.push()
     Lg.scale(2, 2)
+
+    local scrollX = math.round(self.scrollX)
     
     -- draw ground
     do
         local w = self.res.imgGround:getPixelWidth()
-        local sx = -math.round(self.scrollX % w)
+        local sx = -(scrollX % w)
         Lg.draw(self.res.imgGround, sx, FLOOR_Y)
         Lg.draw(self.res.imgGround, sx + w, FLOOR_Y)
     end
@@ -193,8 +197,10 @@ function Game:draw()
     -- draw entities
     Lg.setShader(self.palShader)
     for _, obj in pairs(self.entities) do
-        local drawX = math.round(obj.x + obj.spriteX - self.scrollX)
-        local drawY = math.round(obj.y + obj.spriteY)
+        local sprX = obj.spriteX or 0
+        local sprY = obj.spriteY or 0
+        local drawX = math.round(obj.x + sprX) - scrollX
+        local drawY = math.round(obj.y + sprY)
 
         self:_resetPal()
         self:_flushPal()
@@ -220,15 +226,24 @@ end
 function Game:_entCollisions()
     local plr = self.entities[1]
 
-    -- X entities kinematics
+    local movingEnts = {}
+    local collidingEnts = {}
     for _, ent in pairs(self.entities) do
-        if ent.collision then
-            ent.x = ent.x + ent.xv
+        if ent.flagMove then
+            table.insert(movingEnts, ent)
+        end
+        if ent.flagCollide then
+            table.insert(collidingEnts, ent)
         end
     end
 
+    -- X entities kinematics
+    for _, ent in pairs(movingEnts) do
+        ent.x = ent.x + ent.xv
+    end
+
     -- X axis actor collisions
-    for _, ent in pairs(self.entities) do
+    for _, ent in pairs(collidingEnts) do
         if plr == ent then
             goto continue
         end
@@ -246,11 +261,9 @@ function Game:_entCollisions()
     end
 
     -- Y entities kinematics
-    for _, ent in pairs(self.entities) do
-        if ent.collision then
-            ent.yv = ent.yv + GRAVITY * ent.gmult
-            ent.y = ent.y + ent.yv
-        end
+    for _, ent in pairs(movingEnts) do
+        ent.yv = ent.yv + GRAVITY * ent.gmult
+        ent.y = ent.y + ent.yv
     end
 
     -- floor collision
@@ -262,7 +275,7 @@ function Game:_entCollisions()
     end
 
     -- Y axis actor collisions
-    for _, ent in pairs(self.entities) do
+    for _, ent in pairs(collidingEnts) do
         if plr == ent then
             goto continue
         end
@@ -285,13 +298,13 @@ end
 function Game:_newEntity(entType, ...)
     local obj = setmetatable({}, ACTOR_INITS[entType])
 
-    self.x = 0
-    self.y = 0
-    self.xv = 0
-    self.yv = 0
-    self.w = 0
-    self.h = 0
-    self.gmult = 1.0
+    obj.x = 0
+    obj.y = 0
+    obj.xv = 0
+    obj.yv = 0
+    obj.w = 0
+    obj.h = 0
+    obj.gmult = 1.0
 
     obj:new(self, ...)
     table.insert(self.entities, obj)
@@ -415,7 +428,8 @@ Player.__index = Player
 ---@param game microgame._runner
 ---@param x number
 ---@param y number
-function Player:new(game, x, y)
+---@param moveSpeed number
+function Player:new(game, x, y, moveSpeed)
     self.collision = true
 
     self.x = x + 1
@@ -424,7 +438,7 @@ function Player:new(game, x, y)
     self.h = 7
     self.isOnFloor = false
 
-    self.xv = 0
+    self.xv = moveSpeed
     self.yv = 0
     self.charge = -1
     self.isCharging = false
@@ -439,6 +453,8 @@ function Player:new(game, x, y)
 
     self.isStrobing = false
     self.strobeTick = 0
+
+    self.flagMove = true
 end
 
 function Player:tick(game)
@@ -448,8 +464,6 @@ function Player:tick(game)
     self.sprite:update(App.tickLength)
 
     self.plrAnim = "walk"
-
-    self.x = game.scrollX + 8
 
     if game.manager:isButtonPressed() then
         self.jumpButton = 15
@@ -535,6 +549,10 @@ function Player:tick(game)
     end
 
     if self.isStrobing then
+        if self.isDoingChargeJump then
+            self:_spawnChargeParticle(game)
+        end
+
         self.strobeTick = self.strobeTick + 1
     else
         self.strobeTick = 0
@@ -556,6 +574,14 @@ function Player:draw(game, drawX, drawY)
     end
 
     self.sprite:draw(drawX, drawY)
+end
+
+---@param game microgame._runner
+function Player:_spawnChargeParticle(game)
+    local x = love.math.random(0, self.w - 1) + self.x
+    local y = love.math.random(0, self.h - 1) + self.y
+
+    game:_newEntity("boostParticle", x, y, -0)
 end
 
 ACTOR_INITS.player = Player
@@ -620,7 +646,7 @@ Mound.__index = Mound
 ---@param x number
 ---@param y number
 function Mound:new(game, x, y, resName)
-    self.x = x
+    self.x = math.round(x / 8) * 8
     self.y = y
     self.w = 16
     self.h = 40
@@ -628,9 +654,64 @@ function Mound:new(game, x, y, resName)
     self.sprite = game.res[resName]
     self.spriteX = 0
     self.spriteY = 0
+
+    self.flagCollide = true
 end
 
 ACTOR_INITS.mound = Mound
+
+--------------------------------------------------------------------------------
+--- ACTOR: boostParticle
+--------------------------------------------------------------------------------
+
+local BoostParticle = {}
+BoostParticle.__index = BoostParticle
+
+local boostParticleDrawKinds = {
+    -- square
+    function(x, y)
+        Lg.rectangle("fill", x, y, 2, 2)
+    end,
+
+    -- diamond
+    function(x, y)
+        Lg.points(x-1, y, x, y-1, x+1, y, x, y+1)
+    end,
+
+    -- diagonal line
+    function(x, y)
+        Lg.points(x, y, x+1, y+1)
+    end
+}
+
+function BoostParticle:new(game, x, y, vx)
+    self.flagMove = true
+
+    self.x = x
+    self.y = y
+    self.xv = vx
+    self.yv = 0.2
+    self.gmult = 0
+    self.life = 30
+
+    self.kind = love.math.random(1, 3)
+    self.color = love.math.random(6, 14)
+end
+
+function BoostParticle:tick()
+    if self.life == 0 then
+        self._die = true
+    end
+    self.life = self.life - 1
+end
+
+---@param game microgame._runner
+function BoostParticle:draw(game, drawX, drawY)
+    game:_setDrawColor(self.color)
+    boostParticleDrawKinds[self.kind](drawX, drawY)
+end
+
+ACTOR_INITS.boostParticle = BoostParticle
 
 --------------------------------------------------------------------------------
 
