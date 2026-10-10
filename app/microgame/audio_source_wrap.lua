@@ -40,15 +40,13 @@ for k, v in pairs(debug.getregistry().Source) do
     end
 end
 
----@param file string The path to the audio file
----@param type "stream"|"static" Streaming or static source
-local function newSource(file, type)
-    local realSrc = love.audio.newSource(file, type)
+---@param source love.Source
+local function wrapSource(source)
     return setmetatable({
-        _src = realSrc,
-        _pitch = 1.0,
+        _src = source,
+        _pitch = source:getPitch(),
         _pitchScale = 1.0
     }, SourceWrap)
 end
 
-return newSource
+return wrapSource

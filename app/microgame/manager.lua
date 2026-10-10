@@ -47,7 +47,24 @@ end
 ---@param path string
 ---@param sourceType "static"|"stream"
 function GameManager:newAudioSource(path, sourceType)
-    local src = AudioSourceWrap(path, sourceType)
+    local src = AudioSourceWrap(love.audio.newSource(path, sourceType))
+    src.release = self._audioSrcReleaseFn
+    table.insert(self._audioSrcs, src)
+    return src
+end
+
+---Create a new queueable audio source. Always use this instead of
+---love.audio.newQueueableSource, so that its pitch can be scaled according to
+---the tickSpeed variable.
+---@param sampleRate integer
+---@param depth integer
+---@param channels integer
+---@param bufferCount integer?
+---@return love.Source
+function GameManager:newQueueableAudioSource(sampleRate, depth, channels, bufferCount)
+    local src = AudioSourceWrap(
+        love.audio.newQueueableSource(sampleRate, depth, channels, bufferCount)
+    )
     src.release = self._audioSrcReleaseFn
     table.insert(self._audioSrcs, src)
     return src
