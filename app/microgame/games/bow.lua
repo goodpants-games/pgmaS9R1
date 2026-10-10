@@ -54,7 +54,7 @@ function Game:tick()
             self.drawn = true
             self.bowmanSpr:play("BowDrawn")
 
-            self.shotPower = self.shotPower + 0.15
+            self.shotPower = self.shotPower + (0.003 / App.tickLength)
         end
     else
         if self.drawn == true then
