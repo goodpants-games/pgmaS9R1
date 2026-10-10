@@ -115,17 +115,15 @@ function love.keypressed(key)
     end
 
     if not IS_PACKAGED and key == "f12" then
-        Lg.captureScreenshot(function(data)
-            ---@cast data love.ImageData
-            local fdata = data:encode("png")
+        local data = display_canvas:newImageData()
+        local fdata = data:encode("png")
 
-            local file = assert(io.open("screenshot.png", "wb"), "could not open screenshot.png")
-            file:write(fdata:getString())
-            file:close()
+        local file = assert(io.open("screenshot.png", "wb"), "could not open screenshot.png")
+        file:write(fdata:getString())
+        file:close()
 
-            fdata:release()
-            data:release()
-        end)
+        fdata:release()
+        data:release()
     end
 end
 
