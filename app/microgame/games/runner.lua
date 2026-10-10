@@ -102,9 +102,9 @@ function Game:new(mgr)
     self.curTick = 0
     self.tickAccum = 0
 
-    self.spawnWait = 65 - mgr.speed
+    self.spawnWait = 65 - mgr.speed * 5
 
-    self.spawnTimer = 20 - mgr.speed * 5
+    self.spawnTimer = 20 - mgr.speed * 3
 
     -- world data
     self.scrollX = 0
@@ -133,7 +133,7 @@ end
 
 function Game:tick()
     -- scroll map
-    self.scrollX = self.scrollX + (1.2 * (1.0 + self.manager.speed * 0.1))
+    self.scrollX = self.scrollX + (1.2 * (1.0 + self.manager.speed * 0.2))
 
     -- spawn an obscatle
     if self.spawnTimer == 0 then
@@ -142,7 +142,7 @@ function Game:tick()
         print("spawn obstacle")
 
         local t = love.math.random(1, 2)
-        local spawnX = self.scrollX + GameConf.scrW/2 
+        local spawnX = self.scrollX + GameConf.scrW/2
         if t == 1 then
             self:_newEntity("mound", spawnX, FLOOR_Y - 8, "imgMound")
             self:_newEntity("mound", spawnX, FLOOR_Y - 72, "imgMound2")
@@ -429,6 +429,9 @@ function Player:new(game, x, y)
     self.charge = -1
     self.isCharging = false
     self.isDoingChargeJump = false
+    self.jumpButton = 0
+    self.chargeJumpFastDescend = false
+    self.plrAnim = "walk"
 
     self.sprite = Sprite.new(game.res.sresJelpi)
     self.spriteX = -1
@@ -439,29 +442,71 @@ function Player:new(game, x, y)
 end
 
 function Player:tick(game)
-    -- self.sprite:update(App.tickLength)
+    if self.plrAnim ~= self.sprite.curAnim then
+        self.sprite:play(self.plrAnim)
+    end
+    self.sprite:update(App.tickLength)
+
+    self.plrAnim = "walk"
+
     self.x = game.scrollX + 8
 
+    if game.manager:isButtonPressed() then
+        self.jumpButton = 15
+    end
+
+    local buttonPressed = false
+    if self.jumpButton > 0 then
+        buttonPressed = true
+        self.jumpButton = self.jumpButton - 1
+    end
+
     self.gmult = 1.0
-    if self.isDoingChargeJump and self.yv < 0 then
-        self.gmult = 0.8
+    if self.isDoingChargeJump then
+        if buttonPressed then
+            self.chargeJumpFastDescend = true
+            self.jumpButton = 0
+            self.yv = 0
+        end
+
+        if self.chargeJumpFastDescend then
+            self.yv = 5
+            self.gmult = 0
+        else
+            if self.yv < 0 then
+                self.gmult = 0.8
+            end
+        end
     end
     -- self.yv = self.yv + grav
     -- self.x = self.x + self.xv
     -- self.y = self.y + self.yv
 
     if self.isOnFloor then
-        self.isDoingChargeJump = false
+        local activateCharge = buttonPressed
+        if self.chargeJumpFastDescend and game.manager:isButtonDown() then
+            activateCharge = true
+        end
 
-        if game.manager:isButtonPressed() then
+        self.isDoingChargeJump = false
+        self.chargeJumpFastDescend = false
+
+        if activateCharge then
+            self.jumpButton = 0
             self.isCharging = true
+        end
+    else
+        if self.yv < 0 then
+            self.plrAnim = "jump"
+        else
+            self.plrAnim = "fall"
         end
     end
 
     if self.isCharging then
         local stopCharge = false
 
-        if self.charge >= 15 then
+        if self.charge >= 10 then
             self.yv = -3.8
             self.isDoingChargeJump = true
             stopCharge = true
@@ -486,7 +531,7 @@ function Player:tick(game)
 
         self.isStrobing = true
     else
-        self.isStrobing = self.isDoingChargeJump
+        self.isStrobing = self.isDoingChargeJump and self.yv < 0
     end
 
     if self.isStrobing then
