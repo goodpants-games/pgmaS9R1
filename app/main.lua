@@ -83,11 +83,11 @@ function love.load(args)
             
             elseif arg == "--difficulty" then
                 argi = argi + 1
-                initParams.difficulty = args[argi]
+                initParams.difficulty = tonumber(args[argi])
 
             elseif arg == "--speed" then
                 argi = argi + 1
-                initParams.speed = args[argi]
+                initParams.speed = tonumber(args[argi])
             end
 
             argi = argi + 1
