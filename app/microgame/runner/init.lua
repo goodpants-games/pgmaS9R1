@@ -9,8 +9,8 @@ local GAME_SET = {
     "bounce",
     "fruit_catch",
     "sling",
-    "test1",
-    "test2",
+    "runner",
+    "button",
 }
 
 local BOSS_ROUND_INTERVAL = 20
