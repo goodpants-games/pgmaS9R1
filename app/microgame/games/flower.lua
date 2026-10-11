@@ -29,7 +29,7 @@ function Game:new(mgr)
 
     self.cursorAng = -math.pi / 2
     self.cursorRotVel = 0
-    self.cursorRotSpeed = math.rad(2 + self.manager.speed * 0.8)
+    self.cursorRotSpeed = math.rad(2 + self.manager.speed * 1)
 
     -- scale corresponds to # of petals
     if self.manager.difficulty > 0 then
