@@ -167,7 +167,6 @@ function Game:tick()
     -- remove entities
     for i=#self.entities, 1, -1 do
         if self.entities[i]._die then
-            print("It was destroyed.")
             table.remove(self.entities, i)
         end
     end
