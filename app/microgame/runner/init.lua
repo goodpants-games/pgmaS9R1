@@ -76,10 +76,19 @@ function Runner:new(params)
 
     ---@type {[string]:any}
     self.res = {}
-    self.res.lifeImg = Lg.newImage("/res/img/life.png")
-    self.res.bombSpr = Sprite.new("/res/sprites/bomb.json")
+    self.res.lifeSpr = Sprite.new("/res/sprites/hearts.json")
+    self.res.lifeSpr.alignment = "topleft"
+
+    self.res.bombSpr = Sprite.new("/res/sprites/bomb_timer.json")
     self.res.bombSpr.alignment = "topleft"
 
+    self.res.bombFuseRopeImg = Lg.newImage("/res/sprites/bomb_timer_rope.png")
+    self.res.bombFuseRopeImg:setWrap("repeat", "repeat")
+    
+    self.res.bombFuseFlameSpr = Sprite.new("/res/sprites/bomb_timer_fuse.json")
+    self.res.shellImg = Lg.newImage("res/sprites/arcade_bars.png")
+    self.res.bombFuseRopeQuad = Lg.newQuad(0,0, 0,0, 1,1)
+    
     ---@type microgame.Runner.State
     self.state = nil
 
@@ -98,8 +107,6 @@ function Runner:release()
             res:release()
         end
     end
-
-    self.canvas:release()
 end
 
 ---@param dt number
@@ -128,22 +135,28 @@ end
 
 function Runner:draw()
     self.state:draw()
+
+    Lg.draw(self.res.shellImg, 0, 0)
     
     -- draw lives counter
-    for i=1, self.lives do
-        local x = 2
-        local y = 2 + (i-1) * 24
+    for i=1, 4 do
+        local x = 1
+        local y = 10 + (i-1) * 25
+        local c = 1
+        if i <= self.lives then
+            c = 2
+        end
 
         Lg.setColor(1, 1, 1)
-        Lg.draw(self.res.lifeImg, x, y)
+        self.res.lifeSpr:drawCel(c, x, y)
     end
 
     -- draw bomb
-    Lg.setScissor(0, 0, self.scrX, App.scrH)
-    Lg.setColor(1, 1, 1)
-    self.res.bombSpr:drawCel(1, 2, 153)
-    self.res.bombSpr:drawCel(2, 2, 153)
-    Lg.setScissor()
+    -- Lg.setScissor(0, 0, self.scrX, App.scrH)
+    -- Lg.setColor(1, 1, 1)
+    -- self.res.bombSpr:drawCel(1, 2, 153)
+    -- self.res.bombSpr:drawCel(2, 2, 153)
+    -- Lg.setScissor()
 end
 
 ---@param newState string
@@ -298,6 +311,8 @@ function PlayState:new(runner)
     self.gameTimerMax = GameConf.refGameLength - runner.gameManager.speed * 1
     self.gameTimer = self.gameTimerMax
 
+    runner.res.bombFuseFlameSpr:play("fuse")
+
     runner:_loadMicrogame(runner:_getNextMicrogame())
 end
 
@@ -338,6 +353,8 @@ function PlayState:tick()
         -- end
         -- self.gameManager.tickSpeed = self.gameManager.tickSpeed + 0.5
     end
+
+    runner.res.bombFuseFlameSpr:update(App.tickLength)
 end
 
 function PlayState:draw()
@@ -368,12 +385,36 @@ function PlayState:draw()
     end
 
     -- timer bar
-    Lg.setColor(batteries.color.unpack_rgb(0xffffff))
-    runner.res.bombSpr:drawCel(2, 2, 153)
+    local bombDrawX = 32
+    local bombSpr = runner.res.bombSpr --[[@as pklove.Sprite]]
+    
+    Lg.setColor(0, 0, 0, 0.5)
+    bombSpr:drawCel(1, bombDrawX + 1, 157 + 1)
+    Lg.setColor(1, 1, 1)
+
+    bombSpr:drawCel(1, bombDrawX, 157)
+    bombDrawX = bombDrawX + 29
     if self.gameTimer <= GameConf.refGameLength then
         local progress = self.gameTimer / self.gameTimerMax
-        local barWidth = GameConf.scrW * progress
-        Lg.rectangle("fill", 33 + 2, 153+21, barWidth, 4)
+        local barWidth = (GameConf.scrW - bombDrawX + 30 - 6) * progress
+
+        ---@type love.Quad
+        local q = runner.res.bombFuseRopeQuad
+        q:setViewport(0, 0, barWidth, 4, 4, 4)
+
+        -- draw fuse rope shadow
+        Lg.setColor(0, 0, 0)
+        Lg.rectangle("fill", bombDrawX+1, 172+1, barWidth, 4)
+        -- draw fuse rope
+        Lg.setColor(1, 1, 1)
+        Lg.draw(runner.res.bombFuseRopeImg, q, bombDrawX, 172)
+        -- draw flame shadow
+        local bombFuse = runner.res.bombFuseFlameSpr
+        Lg.setColor(0, 0, 0)
+        bombFuse:draw(bombDrawX + barWidth + 5, 170+1)
+        -- draw flame
+        Lg.setColor(1, 1, 1)
+        bombFuse:draw(bombDrawX + barWidth + 4, 170)
     end
 end
 
