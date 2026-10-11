@@ -1,4 +1,7 @@
 - make screen have dot-matrix or scanline shader
+- on web build, game sometimes crashes when paddle hits ball in Bounce? it's an
+  openal error. investigate if non-compatibility mode truly does fix the issue.
+
 Points system:
 there is a points system. you get points based off how well you do in microgames.
 
