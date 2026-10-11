@@ -3,7 +3,6 @@ local GameManager = require("microgame.manager")
 local FontRes = require("fontres")
 local Sprite = require("sprite")
 
-local GAME_SELECT_CHANCE = 0.4 -- ∈ [0, 1)
 local GAME_SET = {
     "ssi_swing",
     "bounce",
@@ -63,7 +62,7 @@ function Runner:new(params)
     else
         self.gameList = table.shuffle(GAME_SET)
     end
-    self.nextMicrogameToLoad = self:_getNextMicrogame()
+    self.gameListIdx = 1
 
     self.gameManager = GameManager()
     self.gameManager.difficulty = params.difficulty or 0
@@ -171,27 +170,24 @@ function Runner:_switchState(newState, ...)
 end
 
 function Runner:_getNextMicrogame()
-    -- traverse through the game list in ascending order. on each iteration,
-    -- there is a chance that that game will be picked. once picked, move that
-    -- element to the end of the list.
-    local gameListLen = #self.gameList
-    local selectIdx = 1
+    print("GAME ID", self.gameListIdx)
+    local selectedGame = self.gameList[self.gameListIdx]
+    self.gameListIdx = self.gameListIdx + 1
 
-    -- TODO: make random selection more evenly distributed across the list,
-    --       while still making the first few entries the most likelist to be
-    --       picked, while having all of their probabilities add up to 1.
+    if self.gameListIdx > #self.gameList then
+        print("=== SHUFFLE GAME QUEUE ===")
+        self.gameListIdx = 1
 
-    -- stop on the third-to-last-item to guarantee that it will not pick one of
-    -- the last two chosen games
-    while selectIdx < gameListLen - 2 do
-        if love.math.random() < GAME_SELECT_CHANCE then
-            break
-        end
-        selectIdx = selectIdx + 1
+        -- handle last two games specially to ensure that they are never played
+        -- again too soon
+        local game1 = table.remove(self.gameList)
+        local game2 = table.remove(self.gameList)
+
+        table.shuffle(self.gameList)
+
+        table.insert(self.gameList, love.math.random(3, #self.gameList), game1)
+        table.insert(self.gameList, love.math.random(3, #self.gameList), game2)
     end
-
-    local selectedGame = table.remove(self.gameList, selectIdx)
-    table.insert(self.gameList, selectedGame)
 
     return selectedGame
 end
