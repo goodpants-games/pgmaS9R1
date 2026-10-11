@@ -308,7 +308,12 @@ end
 function PlayState:exit()
     local runner = self.runner
     runner.gamesCompleted = runner.gamesCompleted + 1
-    runner.gameManager:unloadGame()
+    
+    local didWin = runner.gameManager:unloadGame()
+    softassert(didWin ~= nil, "unloaded empty game")
+    if didWin == nil then didWin = true end
+
+    runner.lostGame = not didWin
 end
 
 function PlayState:tick()

@@ -117,13 +117,17 @@ function GameManager:loadGame(gameCtor)
     self._queueBtnRelease = false
 end
 
+---@return boolean? didWin
 function GameManager:unloadGame()
     if not self.game then
         return
     end
 
+    local didWin = false
+
     if self.game.unload then
         self.game:unload()
+        didWin = not not self.game.win
     end
     
     for _, res in pairs(self._gameResources) do
@@ -136,6 +140,8 @@ function GameManager:unloadGame()
     self.game = nil
     self._audioSrcs = nil
     self._gameResources = nil
+
+    return didWin
 end
 
 ---@param dt number
