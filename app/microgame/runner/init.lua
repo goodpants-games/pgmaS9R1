@@ -182,11 +182,21 @@ function Runner:_getNextMicrogame()
         -- again too soon
         local game1 = table.remove(self.gameList)
         local game2 = table.remove(self.gameList)
+        local idx
 
         table.shuffle(self.gameList)
 
-        table.insert(self.gameList, love.math.random(3, #self.gameList), game1)
-        table.insert(self.gameList, love.math.random(3, #self.gameList), game2)
+        idx = math.min(
+            #self.gameList + 1,
+            love.math.random(3, #self.gameList)
+        )
+        table.insert(self.gameList, idx, game1)
+        
+        idx = math.min(
+            #self.gameList + 1,
+            love.math.random(3, #self.gameList)
+        )
+        table.insert(self.gameList, idx, game2)
     end
 
     return selectedGame
