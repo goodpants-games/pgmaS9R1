@@ -58,6 +58,8 @@ function Game:new(mgr)
     self.verb = "Vault!"
     self.resRoot = "res/microgames/runner"
 
+    self.win = true
+
     self.backgroundColor = {batteries.colour.unpack_rgb(0x29adff)}
 
     -- create pico-8 palette image
