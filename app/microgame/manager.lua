@@ -49,6 +49,10 @@ function GameManager:new()
     self._queueBtnRelease = false
 end
 
+function GameManager:getTempoScale()
+    return GameConf.refGameLength / (GameConf.refGameLength - self.speed)
+end
+
 ---Create a new audio source. Always use this instead of love.audio.newSource
 ---for audio in a microgame, so that its pitch can be scaled according to the
 ---tickSpeed variable.
