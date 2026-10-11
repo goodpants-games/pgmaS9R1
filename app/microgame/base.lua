@@ -9,6 +9,8 @@
 ---@field resRoot string
 local Base = batteries.class { name = "microgame.GameBase" }
 
+Base.resRoot = "/res/"
+
 ---@param mgr microgame.Manager
 function Base:new(mgr)
     self.manager = mgr
@@ -18,8 +20,6 @@ function Base:new(mgr)
     ---@private
     ---@type love.Object[]
     self._tempResources = {}
-
-    self.resRoot = "/res/"
 end
 
 ---@generic T
