@@ -25,9 +25,17 @@ function GameManager:new()
 
     ---@private
     self._audioSrcReleaseFn = function(this)
-        table.remove_value(self._audioSrcs, this)
-        this.release = getmetatable(this).release
-        this:release()
+        if this:isPlaying() then
+            this._queueRelease = true
+        else
+            self:_releaseSourceWrap(this)
+        end
+    end
+
+    ---@private
+    self._audioSrcCloneFn = function(this)
+        local clone = self:_addSourceWrap(getmetatable(this).clone(this))
+        return clone
     end
 
     ---@private
@@ -48,9 +56,7 @@ end
 ---@param sourceType "static"|"stream"
 function GameManager:newAudioSource(path, sourceType)
     local src = AudioSourceWrap(love.audio.newSource(path, sourceType))
-    src.release = self._audioSrcReleaseFn
-    table.insert(self._audioSrcs, src)
-    return src
+    return self:_addSourceWrap(src)
 end
 
 ---Create a new queueable audio source. Always use this instead of
@@ -65,9 +71,7 @@ function GameManager:newQueueableAudioSource(sampleRate, depth, channels, buffer
     local src = AudioSourceWrap(
         love.audio.newQueueableSource(sampleRate, depth, channels, bufferCount)
     )
-    src.release = self._audioSrcReleaseFn
-    table.insert(self._audioSrcs, src)
-    return src
+    return self:_addSourceWrap(src)
 end
 
 ---@return boolean
@@ -197,9 +201,31 @@ end
 ---@private
 ---@param scale number
 function GameManager:_setAudioPitchScale(scale)
-    for _, src in pairs(self._audioSrcs) do
+    for i=#self._audioSrcs, 1, -1 do
+        local src = self._audioSrcs[i] --[[@as any]]
         src:_setPitchScale(scale)
+        
+        if src._queueRelease and not src:isPlaying() then
+            self:_releaseSourceWrap(src)
+        end
     end
+end
+
+---@param src love.Source|microgame.SourceWrap
+function GameManager:_addSourceWrap(src)
+    src.release = self._audioSrcReleaseFn
+    src.clone = self._audioSrcCloneFn
+    table.insert(self._audioSrcs, src)
+    src:_setPitchScale(self.tickSpeed)
+    return src
+end
+
+---@param src love.Source|microgame.SourceWrap
+function GameManager:_releaseSourceWrap(src)
+    table.remove_value(self._audioSrcs, src)
+    src.release = getmetatable(src).release
+    src.clone = getmetatable(src).clone
+    src:release()
 end
 
 return GameManager

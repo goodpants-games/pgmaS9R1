@@ -5,6 +5,19 @@
 local SourceWrap = {}
 SourceWrap.__index = SourceWrap
 
+---@param source love.Source
+local function wrapSource(source)
+    return setmetatable({
+        _src = source,
+        _pitch = source:getPitch(),
+        _pitchScale = 1.0
+    }, SourceWrap)
+end
+
+function SourceWrap:clone()
+    return wrapSource(self._src:clone())
+end
+
 function SourceWrap:setPitch(pitch)
     self._pitch = math.max(pitch, 0.0)
     self:_updatePitch()
@@ -38,15 +51,6 @@ for k, v in pairs(debug.getregistry().Source) do
             SourceWrap[k] = v
         end
     end
-end
-
----@param source love.Source
-local function wrapSource(source)
-    return setmetatable({
-        _src = source,
-        _pitch = source:getPitch(),
-        _pitchScale = 1.0
-    }, SourceWrap)
 end
 
 return wrapSource
