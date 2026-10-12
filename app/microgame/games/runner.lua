@@ -63,6 +63,7 @@ function Game:new(mgr)
     self:super(mgr)
     self.verb = "Vault!"
     self.resRoot = "res/microgames/runner"
+    mgr:setGameLength(GameConf.refGameLength - mgr.speed)
 
     self.win = true
 
@@ -114,7 +115,7 @@ function Game:new(mgr)
     self.curTick = 0
     self.tickAccum = 0
 
-    self.spawnWait = 65 - mgr.speed * 8
+    self.spawnWait = 65 - mgr.speed * 3
 
     self.spawnTimer = 8
 
@@ -499,11 +500,11 @@ function Player:tick(game)
 
     self.gmult = 1.0
     if self.isDoingChargeJump then
-        if buttonPressed then
-            self.chargeJumpFastDescend = true
-            self.jumpButton = 0
-            self.yv = 0
-        end
+        -- if buttonPressed then
+            -- self.chargeJumpFastDescend = true
+            -- self.jumpButton = 0
+            -- self.yv = 0
+        -- end
 
         if self.chargeJumpFastDescend then
             self.yv = 5
