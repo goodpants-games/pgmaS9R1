@@ -47,7 +47,7 @@ function Game:new(mgr)
     self.beepTickLen = math.floor(30 / mgr:getTempoScale())
     self.beepTickTicker = 0
 
-    local maxTime = (GameConf.refGameLength - mgr.speed) * 60 - MAX_USER_ERROR - 8
+    local maxTime = mgr.gameLength * 60 - MAX_USER_ERROR - 8
     maxTime = math.ceil(maxTime / self.beepTickLen)
 
     self.beepTicksWait = love.math.random(1, maxTime)

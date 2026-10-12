@@ -8,7 +8,7 @@ local Input = require("input")
 local GameManager = batteries.class { name = "microgame.Manager" }
 
 function GameManager:new()
-    ---Number of seconds removed from the timer.
+    ---Speed level starting from 0.
     self.speed = 0
     ---Difficulty level starting from 0. Increases after each boss round.
     self.difficulty = 0
@@ -20,6 +20,9 @@ function GameManager:new()
     ---@type microgame.Game?
     self.game = nil
 
+    ---Current game length in seconds.
+    self.gameLength = 0.0
+    ---Number of seconds left on the timer.
     self.timer = 0.0
     self.tickSpeed = 1.0
 
@@ -49,8 +52,15 @@ function GameManager:new()
     self._queueBtnRelease = false
 end
 
+---@param beats number
+function GameManager:setGameLength(beats)
+    local t = beats * GameConf.secsPerBeat
+    self.gameLength = t
+    self.timer = t
+end
+
 function GameManager:getTempoScale()
-    return GameConf.refGameLength / (GameConf.refGameLength - self.speed)
+    return GameConf.refGameLength * GameConf.secsPerBeat / self.gameLength
 end
 
 ---Create a new audio source. Always use this instead of love.audio.newSource
@@ -99,6 +109,7 @@ function GameManager:loadGame(gameCtor)
     self._gameResources = {}
 
     -- initialize microgame
+    self:setGameLength(GameConf.refGameLength - self.speed * 2)
     self.game = gameCtor(self)
 
     -- validate fields
@@ -115,7 +126,6 @@ function GameManager:loadGame(gameCtor)
         self.game.backgroundColor = { 0.0, 0.0, 0.0 }
     end
 
-    self.timer = GameConf.refGameLength
     self._timeAccum = 0.0
 
     -- reset button state
@@ -187,6 +197,11 @@ function GameManager:tick()
 
             self.game:tick()
             self._timeAccum = self._timeAccum - 1.0
+        end
+
+        self.timer = self.timer - App.tickLength * self.tickSpeed
+        if self.timer < 0 then
+            self.timer = 0
         end
     end
 end

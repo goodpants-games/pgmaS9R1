@@ -343,8 +343,6 @@ runStates.play = PlayState
 function PlayState:new(runner)
     self.runner = runner
     self.verbTextTimer = 1.0
-    self.gameTimerMax = GameConf.refGameLength - runner.gameManager.speed * 1
-    self.gameTimer = self.gameTimerMax
 
     runner.res.bombFuseFlameSpr:play("fuse")
 
@@ -375,9 +373,8 @@ function PlayState:tick()
     if self.verbTextTimer > 0.0 then
         self.verbTextTimer = self.verbTextTimer - App.tickLength
     end
-
-    self.gameTimer = self.gameTimer - App.tickLength * runner.gameManager.tickSpeed
-    if self.gameTimer < 0 then
+    
+    if runner.gameManager.timer == 0 then
         runner:_switchState("enterGame")
 
         -- if not self.gameManager.game.win then
@@ -394,6 +391,8 @@ end
 
 function PlayState:draw()
     local runner = self.runner
+    local gameMgr = runner.gameManager
+
     local scrX, scrY = runner.scrX, runner.scrY
 
     Lg.push("all")
@@ -429,8 +428,8 @@ function PlayState:draw()
 
     bombSpr:drawCel(1, bombDrawX, 157)
     bombDrawX = bombDrawX + 29
-    if self.gameTimer <= GameConf.refGameLength then
-        local progress = self.gameTimer / self.gameTimerMax
+    if true then
+        local progress = gameMgr.timer / gameMgr.gameLength
         local barWidth = (GameConf.scrW - bombDrawX + 30 - 6) * progress
 
         ---@type love.Quad
