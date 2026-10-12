@@ -3,7 +3,8 @@ local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 local FontRes = require("fontres")
 
-local MAX_USER_ERROR = 25
+local MAX_USER_ERROR = 35
+local USER_ERROR_SPEED_SCALE = 5
 
 ---@class _button: microgame.Game
 local Game = batteries.class {
@@ -16,7 +17,7 @@ Game.resRoot = "/res/microgames/button"
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Press?"
+    self.verb = "Press!"
     self.backgroundColor = { 1.0, 1.0, 1.0 }
 
     print(self:getRes("button.json"))
@@ -40,6 +41,8 @@ function Game:new(mgr)
 
     self.isButtonDown = true
     self.gameEnded = false
+
+    self.maxUserError = MAX_USER_ERROR - USER_ERROR_SPEED_SCALE * mgr.speed
 
     self.beepTickLen = math.floor(30 / mgr:getTempoScale())
     self.beepTickTicker = 0
@@ -96,7 +99,8 @@ function Game:tick()
                 else
                     self.sndBeep:stop()
                     self.sndBeep:play()
-                    -- self.text:set(tostring(self.beepTicks))
+                    self.text:set("WAIT")
+                    self.bgFlash = self.bgFlashMax
                 end
             end
             self.beepTickTicker = self.beepTickTicker - 1
@@ -111,7 +115,7 @@ function Game:tick()
         elseif self.pressEffect == "lose" then
             lose = btnPressed
         elseif self.pressEffect == "win" then
-            if diff >= MAX_USER_ERROR then
+            if diff >= self.maxUserError then
                 lose = true
             elseif btnPressed then
                 self.win = true

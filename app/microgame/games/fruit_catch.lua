@@ -2,8 +2,8 @@ local GameBase = require("microgame.base")
 local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 
-local MAX_PLAYER_SPEED = 3.0
-local PLAYER_ACCEL = 0.2
+local MAX_PLAYER_SPEED = 2.3
+local PLAYER_ACCEL = 0.3
 
 ---@class _fruit_catch: microgame.Game
 local Game = batteries.class {
