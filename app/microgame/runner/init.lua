@@ -2,6 +2,7 @@ local GameConf = require("microgame.conf")
 local GameManager = require("microgame.manager")
 local FontRes = require("fontres")
 local Sprite = require("sprite")
+local Input = require("input")
 
 local GAME_SET = {
     "ssi_swing",
@@ -16,6 +17,13 @@ local GAME_SET = {
 
 local BOSS_ROUND_INTERVAL = 20
 local MAX_LIVES = 4
+local UI_ITEM_SLOT_POSITIONS = {
+    { x = 218, y = 13 },
+    { x = 218, y = 38 },
+    { x = 218, y = 63 },
+}
+local UI_ITEM_SLOT_WIDTH = 18
+local UI_ITEM_SLOT_HEIGHT = 12
 
 local SPEED_UP_POINTS = {
     -- level 1
@@ -46,9 +54,18 @@ local Runner = batteries.class {
 ---@field rawUpdate fun(self:microgame.Runner.State, dt:number)?
 ---@field draw fun(self:microgame.Runner.State)
 ---@field exit fun(self:microgame.Runner.State)?
+---@field auxButtonPressed fun(self:microgame.Runner.State, idx:integer)?
+---@field permittedItems string[]?
+
+---@class microgame.Runner.Item
+---@field id string?
+---@field data any
 
 ---@type {[string]:microgame.Runner.State}
 local runStates = {}
+
+---@type {[string]:fun(item:microgame.Runner.Item, state:any)}
+local itemUseProcedures = {}
 
 function Runner:new(params)
     local font = Lg.newFont("/res/fonts/monogram.ttf", 32, "mono", 1.0)
@@ -59,13 +76,15 @@ function Runner:new(params)
     ---@type {[string]:microgame.Game}
     self.gameCache = {}
 
-    if params.initMicrogame then
-        self.gameList = {params.initMicrogame}
-
-        -- disable speed up points when testing a single game
+    -- disable speed up points when speed/difficulty is manually specified
+    if params.difficulty or params.speed then
         for _, t in pairs(SPEED_UP_POINTS) do
             table.clear(t)
         end
+    end
+
+    if params.initMicrogame then
+        self.gameList = {params.initMicrogame}
     else
         self.gameList = table.shuffle(GAME_SET)
     end
@@ -94,6 +113,9 @@ function Runner:new(params)
     self.res.bombFuseFlameSpr = Sprite.new("/res/sprites/bomb_timer_fuse.json")
     self.res.shellImg = Lg.newImage("res/sprites/arcade_bars.png")
     self.res.bombFuseRopeQuad = Lg.newQuad(0,0, 0,0, 1,1)
+
+    self.res.itemsSpr = Sprite.new("/res/sprites/items.json")
+    self.res.itemsSpr.alignment = "center"
     
     ---@type microgame.Runner.State
     self.state = nil
@@ -103,6 +125,14 @@ function Runner:new(params)
 
     -- god damnit
     self.lostGame = false
+
+    ---@type microgame.Runner.Item[]
+    self.items = {}
+    for i=1, 3 do
+        self.items[i] = { id = nil }
+    end
+
+    self.pressedAuxButtons = { false, false, false }
 
     self:_switchState("enterGame")
 end
@@ -117,6 +147,23 @@ end
 
 ---@param dt number
 function Runner:update(dt)
+    if Debug.enabled and not IS_PACKAGED then
+        if love.keyboard.isDown("f2") then
+            self:_debugCommand()
+        end
+    end
+
+    local device = Input.players[1]
+    if device:pressed("auxButton1") then
+        self.pressedAuxButtons[1] = true
+    end
+    if device:pressed("auxButton2") then
+        self.pressedAuxButtons[2] = true
+    end
+    if device:pressed("auxButton3") then
+        self.pressedAuxButtons[3] = true
+    end
+
     self.gameManager:rawUpdate(dt)
     
     if self.state and self.state.rawUpdate then
@@ -137,6 +184,15 @@ function Runner:tick()
     end
 
     self.state:tick()
+
+    for i=1, #self.pressedAuxButtons do
+        if self.pressedAuxButtons[i] then
+            if self.state.auxButtonPressed then
+                self.state:auxButtonPressed(i)
+            end
+            self.pressedAuxButtons[i] = false
+        end
+    end
 end
 
 function Runner:draw()
@@ -155,6 +211,19 @@ function Runner:draw()
 
         Lg.setColor(1, 1, 1)
         self.res.lifeSpr:drawCel(c, x, y)
+    end
+
+    -- draw items
+    local itemsSpr = self.res.itemsSpr --[[@as pklove.Sprite]]
+    local drawOx = UI_ITEM_SLOT_WIDTH / 2
+    local drawOy = UI_ITEM_SLOT_HEIGHT / 2
+    for i=1, #self.items do
+        local item = self.items[i]
+        local drawPos = UI_ITEM_SLOT_POSITIONS[i]
+
+        local imgName = item.id or "nil"
+        itemsSpr:play(imgName)
+        itemsSpr:draw(math.round(drawPos.x + drawOx), math.round(drawPos.y + drawOy))
     end
 
     -- draw bomb
@@ -230,6 +299,64 @@ function Runner:_loadMicrogame(name)
     self.gameManager:loadGame(gameCtor)
 
     self.verbText:set(self.gameManager.game.verb)
+end
+
+function Runner:_debugCommand()
+    while true do
+        io.write(">")
+        local args = {}
+        for arg in string.gmatch(io.read("*l"), "[^%s+]+") do
+            table.insert(args, arg)
+        end
+
+        if args[1] == "continue" then
+            break
+        end
+
+        if args[1] == "help" then
+            print("continue")
+            print("set_item <idx> <name>")
+            print("give_item <name>")
+            print("set_speed <spd>")
+            print("set_level <lvl>")
+            goto continue
+        end
+
+        if args[1] == "set_item" then
+            local item = self.items[tonumber(args[2])]
+            item.id = args[3]
+            item.data = nil
+            goto continue
+        end
+
+        if args[1] == "give_item" then
+            for _, item in ipairs(self.items) do
+                if item.id == nil then
+                    item.id = args[2]
+                    item.data = nil
+                    break
+                end
+            end
+
+            goto continue
+        end
+
+        if args[1] == "set_speed" then
+            self.gameManager.speed = tonumber(args[2])--[[@as integer]]
+            goto continue
+        end
+
+        if args[1] == "set_level" then
+            self.gameManager.difficulty = tonumber(args[2])--[[@as integer]]
+            goto continue
+        end
+
+        warn("unknown command")
+        ::continue::
+    end
+
+    love.window.minimize()
+    love.window.restore()
 end
 
 
@@ -331,8 +458,54 @@ end
 
 
 --------------------------------------------------------------------------------
+--- Item Database
+--------------------------------------------------------------------------------
+
+-- reroll --
+function itemUseProcedures.reroll(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+
+    runner:_loadMicrogame(GAME_SET[math.random(1, #GAME_SET)])
+    state.verbTextTimer = 1.0
+end
+
+-- moreTime --
+function itemUseProcedures.moreTime(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+    local gameMgr = runner.gameManager
+    gameMgr.timer = math.min(gameMgr.gameLength, gameMgr.timer + 2)
+
+    if gameMgr.game.onTimerIncrease then
+        gameMgr.game:onTimerIncrease()
+    end
+end
+
+-- slow --
+function itemUseProcedures.slow(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+    local gameMgr = runner.gameManager
+    gameMgr.tickSpeed = gameMgr.tickSpeed * 0.5
+end
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------
 --- STATE: play
 --------------------------------------------------------------------------------
+local PLAY_STATE_PERMITTED_ITEMS = {
+    "reroll", "moreTime", "slow", "shield", "save1"
+}
+
 ---@class microgame.Runner.PlayState: microgame.Runner.State
 local PlayState = batteries.class {
     name = "microgame.Runner.PlayState"
@@ -341,12 +514,26 @@ runStates.play = PlayState
 
 ---@param runner microgame.Runner
 function PlayState:new(runner)
+    self.permittedItems = PLAY_STATE_PERMITTED_ITEMS
     self.runner = runner
     self.verbTextTimer = 1.0
 
     runner.res.bombFuseFlameSpr:play("fuse")
 
     runner:_loadMicrogame(runner:_getNextMicrogame())
+end
+
+function PlayState:auxButtonPressed(idx)
+    local item = self.runner.items[idx]
+    local itemId = item.id
+    if not table.index_of(self.permittedItems, itemId) then
+        return
+    end
+    
+    print("use item " .. itemId)
+
+    item.id = nil
+    itemUseProcedures[itemId](item, self)
 end
 
 ---@param dt number
@@ -357,6 +544,7 @@ end
 function PlayState:exit()
     local runner = self.runner
     runner.gamesCompleted = runner.gamesCompleted + 1
+    runner.gameManager.tickSpeed = 1.0
     
     local didWin = runner.gameManager:unloadGame()
     softassert(didWin ~= nil, "unloaded empty game")
