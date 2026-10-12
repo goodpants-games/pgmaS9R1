@@ -11,6 +11,7 @@ local GAME_SET = {
     "runner",
     "button",
     "flower",
+    "bow",
 }
 
 local BOSS_ROUND_INTERVAL = 20
