@@ -3,6 +3,8 @@ local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 local FontRes = require("fontres")
 
+local MAX_USER_ERROR = 25
+
 ---@class _button: microgame.Game
 local Game = batteries.class {
     name = "microgame.button",
@@ -14,7 +16,7 @@ Game.resRoot = "/res/microgames/button"
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Press!"
+    self.verb = "Press?"
     self.backgroundColor = { 1.0, 1.0, 1.0 }
 
     print(self:getRes("button.json"))
@@ -39,9 +41,15 @@ function Game:new(mgr)
     self.isButtonDown = true
     self.gameEnded = false
 
-    self.beepTicks = 4
+    self.beepTickLen = math.floor(30 / mgr:getTempoScale())
     self.beepTickTicker = 0
-    self.beepTickLen = 30
+
+    local maxTime = (GameConf.refGameLength - mgr.speed) * 60 - MAX_USER_ERROR - 8
+    maxTime = math.ceil(maxTime / self.beepTickLen)
+
+    self.beepTicksWait = love.math.random(1, maxTime)
+    self.beepTicks = self.beepTicksWait + 1
+    print(self.beepTicks)
 
     self.curTick = 0
 
@@ -84,19 +92,18 @@ function Game:tick()
 
                     self.sndBeep:play()
                     self.activateTick = self.curTick
+                    self.bgFlash = self.bgFlashMax
                 else
                     self.sndBeep:seek(0)
                     self.sndBeep:play()
-                    self.text:set(tostring(self.beepTicks))
+                    -- self.text:set(tostring(self.beepTicks))
                 end
-
-                self.bgFlash = self.bgFlashMax
             end
             self.beepTickTicker = self.beepTickTicker - 1
         end
 
         local lose = false
-        local diff = self.curTick - 3 * self.beepTickLen
+        local diff = self.curTick - self.beepTickLen * self.beepTicksWait
 
         local btnPressed = self.manager:isButtonPressed()
         if diff < 0 then
@@ -104,7 +111,7 @@ function Game:tick()
         elseif self.pressEffect == "lose" then
             lose = btnPressed
         elseif self.pressEffect == "win" then
-            if diff >= 25 then
+            if diff >= MAX_USER_ERROR then
                 lose = true
             elseif btnPressed then
                 self.win = true
