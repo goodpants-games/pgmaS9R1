@@ -22,6 +22,7 @@ function Game:new(mgr)
     self.verb = "Pluck!"
     self.win = false
     self.backgroundColor = { 0.1, 0.4, 1.0 }
+    mgr:setGameLength(GameConf.refGameLength - mgr.speed)
 
     self.flowerX = math.round(GameConf.scrW / 2)
     self.flowerY = math.round(GameConf.scrH / 2)
