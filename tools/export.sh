@@ -2,8 +2,8 @@
 set -e
 
 PROJECT_ROOT=$PWD
-GAME_NAME=LoveGame
-GAME_TITLE="My Cool Game"
+GAME_NAME=monoware
+GAME_TITLE="Monoware"
 
 WIN64_BUILD_NAME=love-11.5-win64
 
@@ -43,7 +43,7 @@ build_win64() {
 # create web build
 build_html5() {
     echo "== HTML5 EXPORT =="
-    love.js -t "$GAME_TITLE" -c exports/${GAME_NAME}.love exports/lovejs
+    love.js -t "$GAME_TITLE" exports/${GAME_NAME}.love exports/lovejs
     cp -f tools/lovejs_index.html exports/lovejs/index.html
     cp -f tools/loading.png exports/lovejs/loading.png
 }
