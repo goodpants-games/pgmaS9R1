@@ -61,7 +61,7 @@ end
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Vault!"
+    self.verb = "Leap!"
     self.resRoot = "res/microgames/runner"
     mgr:setGameLength(GameConf.refGameLength - mgr.speed)
 
@@ -510,7 +510,7 @@ function Player:tick(game)
             self.yv = 5
             self.gmult = 0
         else
-            if self.yv < 0 then
+            if self.yv < 0 and game.manager:isButtonDown() then
                 self.gmult = 0.8
             end
         end
