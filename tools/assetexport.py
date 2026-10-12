@@ -42,9 +42,8 @@ def copy_file(src_path: str, dst_path: str) -> bool:
         eprint(f"[CPY] {src_path} => {dst_path}")
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
         shutil.copy(src_path, dst_path)
-        return True
-    else:
-        return False
+    
+    return True
 
 
 def process_tmx(src_path: str, dst_path: str) -> bool:
@@ -121,6 +120,9 @@ def scan_directory(dirpath: str) -> bool:
 
     if not os.path.exists(src_dir): return succ
     for basename in sorted(os.listdir(src_dir)):
+        if basename and basename[0] == '.':
+            continue
+            
         path = os.path.join(src_dir, basename)
 
         if os.path.isdir(path):

@@ -1,12 +1,15 @@
 ---@class microgame.Game: batteries.Class
 ---@overload fun(mgr: microgame.Manager):microgame.Game
----@field tick fun()?
----@field draw fun()?
+---@field tick fun(self:microgame.Game)?
+---@field rawUpdate fun(self:microgame.Game, dt:number)?
+---@field draw fun(self:microgame.Game)?
 ---@field win boolean
 ---@field verb string
 ---@field backgroundColor number[]
 ---@field resRoot string
 local Base = batteries.class { name = "microgame.GameBase" }
+
+Base.resRoot = "/res/"
 
 ---@param mgr microgame.Manager
 function Base:new(mgr)
@@ -17,8 +20,6 @@ function Base:new(mgr)
     ---@private
     ---@type love.Object[]
     self._tempResources = {}
-
-    self.resRoot = "/res/"
 end
 
 ---@generic T

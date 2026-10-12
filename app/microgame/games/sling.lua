@@ -5,10 +5,13 @@ local GameConf = require("microgame.conf")
 --       otherwise it may be impossible for the player to win
 
 local GRAVITY = 0.45
+local CHECKPOINT_MIN_DIST = 70
+local CHECKPOINT_MAX_DIST = 80
 local LAUNCH_POWER = 9
 local AIM_ANGLE_DELTA = math.rad(1.2)
 local AIM_PHASE_LENGTH = 120
 local AIM_MAX_ANGLE = AIM_PHASE_LENGTH / 4 * AIM_ANGLE_DELTA
+local MAX_ANGLE_DIFF_WHEN_FAST = math.rad(30)
 
 ---@class _sling: microgame.Game
 local Game = batteries.class {
@@ -45,32 +48,64 @@ function Game:new(mgr)
     local minAng = -math.pi / 2 - AIM_MAX_ANGLE
     local maxAng = -math.pi / 2 + AIM_MAX_ANGLE
 
+    local spawnCheckpoint = self:_add_checkpoint(baseX, baseY)
+    spawnCheckpoint.disabled = true
+
     local newestCheckpoint
     for ci=1, math.min(2, self.manager.difficulty + 1) do
         local newX, newY
-        for j=1, 1000 do -- max iterations in case something very bad happens
-            local ang = math.lerp(minAng, maxAng, love.math.random())
-            local vx = math.cos(ang) * LAUNCH_POWER
-            local vy = math.sin(ang) * LAUNCH_POWER
-            local time = math.lerp(10, 30, love.math.random())
 
-            newX, newY = self:_approximate_arc(baseX, baseY, vx, vy, time)
+        for _=1, 1000 do -- max iterations in case something very bad happens
+            local curMinAng = minAng
+            local curMaxAng = maxAng
 
-            if (newX > 20 and newX < GameConf.scrW - 20) and
-               (newY - vy > 20)
-            then
-                goto foundPosition
+            if false then
+                local cp1 = self.checkpoints[ci - 1]
+                local cp2 = self.checkpoints[ci]
+                local cpDx = cp2.x - cp1.x
+                local cpDy = cp2.y - cp1.y
+                local ang1 = math.atan2(cpDy, cpDx)
+
+                -- curMinAng = math.max(minAng, ang1 - MAX_ANGLE_DIFF_WHEN_FAST)
+                -- curMaxAng = math.min(maxAng, ang1 + MAX_ANGLE_DIFF_WHEN_FAST)
+
+                if cpDx > 0 then
+                    curMinAng = -math.pi / 2 + MAX_ANGLE_DIFF_WHEN_FAST
+                    if curMinAng > maxAng then
+                        curMinAng = -math.pi / 2 - MAX_ANGLE_DIFF_WHEN_FAST
+                    end
+                else
+                    curMaxAng = -math.pi / 2 - MAX_ANGLE_DIFF_WHEN_FAST
+                    if curMaxAng < minAng then
+                        curMaxAng = -math.pi / 2 + MAX_ANGLE_DIFF_WHEN_FAST
+                    end
+                end
+
+                -- print(math.an(ang1, math.pi/2))
+
+                -- curMinAng = math.max(minAng, ang1 - MAX_ANGLE_DIFF_WHEN_FAST)
+                -- curMaxAng = math.min(maxAng, ang1 + MAX_ANGLE_DIFF_WHEN_FAST)
             end
 
-            print("ci", ci)
-            print("newX", newX)
-            print("newY", newY)
-            print("Another iteration")
+            local ang = math.lerp(curMinAng, curMaxAng, love.math.random())
+            local dist = math.lerp(CHECKPOINT_MIN_DIST, CHECKPOINT_MAX_DIST, love.math.random())
+            newX = baseX + math.cos(ang) * dist
+            newY = baseY + math.sin(ang) * dist
+
+            if newX < 20 or newX > GameConf.scrW - 20 then
+                goto continue
+            end
+            if newY < 20 then
+                goto continue
+            end
+
+            goto foundPosition
+            ::continue::
+            print("invalid position...")
         end
-
         softerror("Something very bad happened")
-
         ::foundPosition::
+
         newX = math.round(newX)
         newY = math.round(newY)
         newestCheckpoint = self:_add_checkpoint(newX, newY)
@@ -97,11 +132,11 @@ function Game:_approximate_arc(px, py, vx, vy, ticks)
 end
 
 function Game:tick()
-    if self.win then
-        return
-    end
-
     if self.plrLocked then
+        if self.win then
+            return
+        end
+
         local aimPhaseLen = self.aimPhaseLength
         local aimAngDelta = self.aimAngleDelta
         if (self.throwTicker + aimPhaseLen / 4) % aimPhaseLen < aimPhaseLen / 2 then
@@ -110,8 +145,6 @@ function Game:tick()
             self.throwAng = self.throwAng - aimAngDelta
         end
 
-        -- self.plrX = App.mousex
-        -- self.plrY = App.mousey
         self.throwTicker = (self.throwTicker + 1) % aimPhaseLen
 
         if self.manager:isButtonPressed() then
@@ -124,7 +157,7 @@ function Game:tick()
         self.plrY = self.plrY + self.plrVy
         self.plrVy = self.plrVy + GRAVITY
 
-        for _, cp in pairs(self.checkpoints) do
+        for cpi, cp in pairs(self.checkpoints) do
             if cp.disabled then
                 goto continue
             end
@@ -140,6 +173,10 @@ function Game:tick()
                 
                 self.plrVx = self.plrVx + dxn * 2 - self.plrVx * 0.2
                 self.plrVy = self.plrVy + dyn * 2 - self.plrVy * 0.2
+
+                if cp.last then
+                    self.win = true
+                end
             end
 
             if dsq < 2 * 2 then
@@ -149,10 +186,17 @@ function Game:tick()
                 self.plrVy = 0
                 self.plrLocked = true
                 cp.disabled = true
+                
+                if not cp.last then
+                    self.throwAng = -math.pi/2
 
-                if cp.last then
-                    self.win = true
+                    if self.checkpoints[cpi+1].x > cp.x then
+                        self.throwTicker = 0
+                    else
+                        self.throwTicker = AIM_PHASE_LENGTH/4
+                    end
                 end
+
                 break
             end
 

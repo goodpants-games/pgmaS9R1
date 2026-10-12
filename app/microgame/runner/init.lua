@@ -3,28 +3,29 @@ local GameManager = require("microgame.manager")
 local FontRes = require("fontres")
 local Sprite = require("sprite")
 
-local GAME_SELECT_CHANCE = 0.4 -- ∈ [0, 1)
 local GAME_SET = {
     "ssi_swing",
     "bounce",
     "fruit_catch",
     "sling",
-    "test1",
-    "test2",
+    "runner",
+    "button",
+    "flower",
 }
 
 local BOSS_ROUND_INTERVAL = 20
+local MAX_LIVES = 4
 
 local SPEED_UP_POINTS = {
     -- level 1
-    { 10, 16 },
+    { 8, 14 },
     -- level 2
-    { 9, 15 },
+    { 6, 12 },
     -- level 3
-    { 7, 14 }
+    { 4, 8 }
 }
 
-if Debug.enabled then
+if false then
     print("INSERT DEBUG SPEED UP POINTS")
     for i=1, 3 do
         table.insert(SPEED_UP_POINTS, 1, { 2, 5 })
@@ -41,7 +42,7 @@ local Runner = batteries.class {
 ---@class microgame.Runner.State
 ---@overload fun(runner:microgame.Runner, ...: any):microgame.Runner.State
 ---@field tick fun(self:microgame.Runner.State)
----@field update fun(self:microgame.Runner.State, dt:number)?
+---@field rawUpdate fun(self:microgame.Runner.State, dt:number)?
 ---@field draw fun(self:microgame.Runner.State)
 ---@field exit fun(self:microgame.Runner.State)?
 
@@ -59,26 +60,40 @@ function Runner:new(params)
 
     if params.initMicrogame then
         self.gameList = {params.initMicrogame}
+
+        -- disable speed up points when testing a single game
+        for _, t in pairs(SPEED_UP_POINTS) do
+            table.clear(t)
+        end
     else
         self.gameList = table.shuffle(GAME_SET)
     end
-    self.nextMicrogameToLoad = self:_getNextMicrogame()
+    self.gameListIdx = 1
 
     self.gameManager = GameManager()
     self.gameManager.difficulty = params.difficulty or 0
     self.gameManager.speed = params.speed or 0
 
-    self.lives = 4
+    self.lives = MAX_LIVES
     self.gamesCompleted = 0
     -- current game within difficulty level
     self.round = 0
 
     ---@type {[string]:any}
     self.res = {}
-    self.res.lifeImg = Lg.newImage("/res/img/life.png")
-    self.res.bombSpr = Sprite.new("/res/sprites/bomb.json")
+    self.res.lifeSpr = Sprite.new("/res/sprites/hearts.json")
+    self.res.lifeSpr.alignment = "topleft"
+
+    self.res.bombSpr = Sprite.new("/res/sprites/bomb_timer.json")
     self.res.bombSpr.alignment = "topleft"
 
+    self.res.bombFuseRopeImg = Lg.newImage("/res/sprites/bomb_timer_rope.png")
+    self.res.bombFuseRopeImg:setWrap("repeat", "repeat")
+    
+    self.res.bombFuseFlameSpr = Sprite.new("/res/sprites/bomb_timer_fuse.json")
+    self.res.shellImg = Lg.newImage("res/sprites/arcade_bars.png")
+    self.res.bombFuseRopeQuad = Lg.newQuad(0,0, 0,0, 1,1)
+    
     ---@type microgame.Runner.State
     self.state = nil
 
@@ -97,16 +112,14 @@ function Runner:release()
             res:release()
         end
     end
-
-    self.canvas:release()
 end
 
 ---@param dt number
 function Runner:update(dt)
-    self.gameManager:update(dt)
+    self.gameManager:rawUpdate(dt)
     
-    if self.state and self.state.update then
-        self.state:update(dt)
+    if self.state and self.state.rawUpdate then
+        self.state:rawUpdate(dt)
     end
 end
 
@@ -127,22 +140,28 @@ end
 
 function Runner:draw()
     self.state:draw()
+
+    Lg.draw(self.res.shellImg, 0, 0)
     
     -- draw lives counter
-    for i=1, self.lives do
-        local x = 2
-        local y = 2 + (i-1) * 24
+    for i=1, 4 do
+        local x = 1
+        local y = 10 + (i-1) * 25
+        local c = 1
+        if i <= self.lives then
+            c = 2
+        end
 
         Lg.setColor(1, 1, 1)
-        Lg.draw(self.res.lifeImg, x, y)
+        self.res.lifeSpr:drawCel(c, x, y)
     end
 
     -- draw bomb
-    Lg.setScissor(0, 0, self.scrX, App.scrH)
-    Lg.setColor(1, 1, 1)
-    self.res.bombSpr:drawCel(1, 2, 153)
-    self.res.bombSpr:drawCel(2, 2, 153)
-    Lg.setScissor()
+    -- Lg.setScissor(0, 0, self.scrX, App.scrH)
+    -- Lg.setColor(1, 1, 1)
+    -- self.res.bombSpr:drawCel(1, 2, 153)
+    -- self.res.bombSpr:drawCel(2, 2, 153)
+    -- Lg.setScissor()
 end
 
 ---@param newState string
@@ -157,27 +176,34 @@ function Runner:_switchState(newState, ...)
 end
 
 function Runner:_getNextMicrogame()
-    -- traverse through the game list in ascending order. on each iteration,
-    -- there is a chance that that game will be picked. once picked, move that
-    -- element to the end of the list.
-    local gameListLen = #self.gameList
-    local selectIdx = 1
+    print("GAME ID", self.gameListIdx)
+    local selectedGame = self.gameList[self.gameListIdx]
+    self.gameListIdx = self.gameListIdx + 1
 
-    -- TODO: make random selection more evenly distributed across the list,
-    --       while still making the first few entries the most likelist to be
-    --       picked, while having all of their probabilities add up to 1.
+    if self.gameListIdx > #self.gameList then
+        print("=== SHUFFLE GAME QUEUE ===")
+        self.gameListIdx = 1
 
-    -- stop on the third-to-last-item to guarantee that it will not pick one of
-    -- the last two chosen games
-    while selectIdx < gameListLen - 2 do
-        if love.math.random() < GAME_SELECT_CHANCE then
-            break
-        end
-        selectIdx = selectIdx + 1
+        -- handle last two games specially to ensure that they are never played
+        -- again too soon
+        local game1 = table.remove(self.gameList)
+        local game2 = table.remove(self.gameList)
+        local idx
+
+        table.shuffle(self.gameList)
+
+        idx = math.min(
+            #self.gameList + 1,
+            love.math.random(3, #self.gameList)
+        )
+        table.insert(self.gameList, idx, game1)
+        
+        idx = math.min(
+            #self.gameList + 1,
+            love.math.random(3, #self.gameList)
+        )
+        table.insert(self.gameList, idx, game2)
     end
-
-    local selectedGame = table.remove(self.gameList, selectIdx)
-    table.insert(self.gameList, selectedGame)
 
     return selectedGame
 end
@@ -227,6 +253,7 @@ function EnterGameState:new(runner)
     self.time = 0
     
     runner.round = runner.round + 1
+    self.bossRound = runner.round % BOSS_ROUND_INTERVAL == 0
 
     -- ouch
     if runner.lostGame then
@@ -237,8 +264,19 @@ function EnterGameState:new(runner)
     local levelData = SPEED_UP_POINTS[gameMgr.difficulty + 1]
 
     self.speedUp = table.index_of(levelData, runner.round) ~= nil
+
     if self.speedUp then
         gameMgr.speed = gameMgr.speed + 1
+    end
+
+    if self.bossRound then
+        gameMgr.speed = 0
+        gameMgr.difficulty = gameMgr.difficulty + 1
+        runner.round = 0
+
+        if runner.lives < MAX_LIVES then
+            runner.lives = runner.lives + 1
+        end
     end
 end
 
@@ -265,9 +303,15 @@ function EnterGameState:draw()
     Lg.setColor(1, 1, 1)
     Lg.print(tostring(runner.gamesCompleted + 1), 10, 10)
 
+    local txt = ""
     if self.speedUp then
-        Lg.print("SPEED UP!", 10, 30)
+        txt = txt .. "SPEED UP!"
     end
+    if self.bossRound then
+        txt = txt .. "LEVEL UP!"
+    end
+    
+    Lg.print(txt, 10, 30)
 
     Lg.pop()
 end
@@ -297,18 +341,25 @@ function PlayState:new(runner)
     self.gameTimerMax = GameConf.refGameLength - runner.gameManager.speed * 1
     self.gameTimer = self.gameTimerMax
 
+    runner.res.bombFuseFlameSpr:play("fuse")
+
     runner:_loadMicrogame(runner:_getNextMicrogame())
 end
 
 ---@param dt number
-function PlayState:update(dt)
+function PlayState:rawUpdate(dt)
     
 end
 
 function PlayState:exit()
     local runner = self.runner
     runner.gamesCompleted = runner.gamesCompleted + 1
-    runner.gameManager:unloadGame()
+    
+    local didWin = runner.gameManager:unloadGame()
+    softassert(didWin ~= nil, "unloaded empty game")
+    if didWin == nil then didWin = true end
+
+    runner.lostGame = not didWin
 end
 
 function PlayState:tick()
@@ -332,6 +383,8 @@ function PlayState:tick()
         -- end
         -- self.gameManager.tickSpeed = self.gameManager.tickSpeed + 0.5
     end
+
+    runner.res.bombFuseFlameSpr:update(App.tickLength)
 end
 
 function PlayState:draw()
@@ -362,12 +415,36 @@ function PlayState:draw()
     end
 
     -- timer bar
-    Lg.setColor(batteries.color.unpack_rgb(0xffffff))
-    runner.res.bombSpr:drawCel(2, 2, 153)
+    local bombDrawX = 32
+    local bombSpr = runner.res.bombSpr --[[@as pklove.Sprite]]
+    
+    Lg.setColor(0, 0, 0, 0.5)
+    bombSpr:drawCel(1, bombDrawX + 1, 157 + 1)
+    Lg.setColor(1, 1, 1)
+
+    bombSpr:drawCel(1, bombDrawX, 157)
+    bombDrawX = bombDrawX + 29
     if self.gameTimer <= GameConf.refGameLength then
         local progress = self.gameTimer / self.gameTimerMax
-        local barWidth = GameConf.scrW * progress
-        Lg.rectangle("fill", 33 + 2, 153+21, barWidth, 4)
+        local barWidth = (GameConf.scrW - bombDrawX + 30 - 6) * progress
+
+        ---@type love.Quad
+        local q = runner.res.bombFuseRopeQuad
+        q:setViewport(0, 0, barWidth, 4, 4, 4)
+
+        -- draw fuse rope shadow
+        Lg.setColor(0, 0, 0)
+        Lg.rectangle("fill", bombDrawX+1, 172+1, barWidth, 4)
+        -- draw fuse rope
+        Lg.setColor(1, 1, 1)
+        Lg.draw(runner.res.bombFuseRopeImg, q, bombDrawX, 172)
+        -- draw flame shadow
+        local bombFuse = runner.res.bombFuseFlameSpr
+        Lg.setColor(0, 0, 0)
+        bombFuse:draw(bombDrawX + barWidth + 5, 170+1)
+        -- draw flame
+        Lg.setColor(1, 1, 1)
+        bombFuse:draw(bombDrawX + barWidth + 4, 170)
     end
 end
 
