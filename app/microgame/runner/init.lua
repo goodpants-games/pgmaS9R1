@@ -258,6 +258,10 @@ function EnterGameState:new(runner)
     -- ouch
     if runner.lostGame then
         runner.lives = runner.lives - 1
+        -- restart game when out of lives
+        if runner.lives == 0 and not Debug.enabled then
+            Sceneman.switchScene("game_runner", {})
+        end
     end
 
     local gameMgr = runner.gameManager
