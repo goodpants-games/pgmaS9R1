@@ -139,6 +139,10 @@ function Game:unload()
     self.__super.unload(self)
 end
 
+function Game:onTimerIncrease()
+    self.res.music:setLooping(true)
+end
+
 function Game:tick()
     -- spawn an obscatle
     if self.spawnTimer == 0 then

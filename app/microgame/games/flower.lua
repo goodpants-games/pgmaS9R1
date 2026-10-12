@@ -71,6 +71,10 @@ function Game:new(mgr)
     end
 end
 
+function Game:onTimerIncrease()
+    self.res.music:setLooping(true)
+end
+
 function Game:tick()
     -- update falling petals
     for _, petal in pairs(self.petals) do
