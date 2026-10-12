@@ -3,9 +3,9 @@ local GameBase = require("microgame.base")
 
 local GRAVITY = 0.45
 
----@class _test1: microgame.Game
+---@class microgame._bow: microgame.Game
 local Game = batteries.class {
-    name = "Microgame.Bow",
+    name = "microgame.bow",
     extends = GameBase
 }
 
