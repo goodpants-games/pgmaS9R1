@@ -60,6 +60,11 @@ function Runner:new(params)
 
     if params.initMicrogame then
         self.gameList = {params.initMicrogame}
+
+        -- disable speed up points when testing a single game
+        for _, t in pairs(SPEED_UP_POINTS) do
+            table.clear(t)
+        end
     else
         self.gameList = table.shuffle(GAME_SET)
     end
