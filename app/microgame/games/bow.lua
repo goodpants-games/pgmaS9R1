@@ -1,5 +1,6 @@
 local Sprite = require("sprite")
 local GameBase = require("microgame.base")
+local GameConf = require("microgame.conf")
 
 local GRAVITY = 0.45
 
@@ -14,6 +15,7 @@ function Game:new(mgr)
     self:super(mgr)
     self.verb = "Shoot!"
     self.backgroundColor = {0.3, 0.6, 1.0}
+    mgr:setGameLength(GameConf.refGameLength - 2 - mgr.speed)
 
     self.shot = false
     self.drawn = false
