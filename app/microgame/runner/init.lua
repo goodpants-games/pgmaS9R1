@@ -14,17 +14,18 @@ local GAME_SET = {
 }
 
 local BOSS_ROUND_INTERVAL = 20
+local MAX_LIVES = 4
 
 local SPEED_UP_POINTS = {
     -- level 1
-    { 10, 16 },
+    { 8, 14 },
     -- level 2
-    { 9, 15 },
+    { 6, 12 },
     -- level 3
-    { 7, 14 }
+    { 4, 8 }
 }
 
-if Debug.enabled then
+if false then
     print("INSERT DEBUG SPEED UP POINTS")
     for i=1, 3 do
         table.insert(SPEED_UP_POINTS, 1, { 2, 5 })
@@ -68,7 +69,7 @@ function Runner:new(params)
     self.gameManager.difficulty = params.difficulty or 0
     self.gameManager.speed = params.speed or 0
 
-    self.lives = 4
+    self.lives = MAX_LIVES
     self.gamesCompleted = 0
     -- current game within difficulty level
     self.round = 0
@@ -247,6 +248,7 @@ function EnterGameState:new(runner)
     self.time = 0
     
     runner.round = runner.round + 1
+    self.bossRound = runner.round % BOSS_ROUND_INTERVAL == 0
 
     -- ouch
     if runner.lostGame then
@@ -257,8 +259,19 @@ function EnterGameState:new(runner)
     local levelData = SPEED_UP_POINTS[gameMgr.difficulty + 1]
 
     self.speedUp = table.index_of(levelData, runner.round) ~= nil
+
     if self.speedUp then
         gameMgr.speed = gameMgr.speed + 1
+    end
+
+    if self.bossRound then
+        gameMgr.speed = 0
+        gameMgr.difficulty = gameMgr.difficulty + 1
+        runner.round = 0
+
+        if runner.lives < MAX_LIVES then
+            runner.lives = runner.lives + 1
+        end
     end
 end
 
@@ -285,9 +298,15 @@ function EnterGameState:draw()
     Lg.setColor(1, 1, 1)
     Lg.print(tostring(runner.gamesCompleted + 1), 10, 10)
 
+    local txt = ""
     if self.speedUp then
-        Lg.print("SPEED UP!", 10, 30)
+        txt = txt .. "SPEED UP!"
     end
+    if self.bossRound then
+        txt = txt .. "LEVEL UP!"
+    end
+    
+    Lg.print(txt, 10, 30)
 
     Lg.pop()
 end
