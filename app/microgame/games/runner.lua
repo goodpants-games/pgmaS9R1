@@ -3,6 +3,8 @@ local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 local Json = require("json")
 
+-- TODO: on higher difficulty there will be spikes on each mound
+
 -- ticksPerSec = 120
 -- rowsPerBeat = 4
 -- ticksPerRow = (60 / bpm) * ticksPerSec / rowsPerBeat
@@ -543,19 +545,19 @@ function Player:tick(game)
         if self.charge >= 10 then
             self.yv = -3.8
             self.isDoingChargeJump = true
-            game.res.sndSuperJump:seek(0)
+            game.res.sndSuperJump:stop()
             game.res.sndSuperJump:play()
             stopCharge = true
         elseif self.charge >= 8 and not game.manager:isButtonDown() then
             self.yv = -3
-            game.res.sndJump:seek(0)
+            game.res.sndJump:stop()
             game.res.sndJump:play()
             stopCharge = true
         else
             self.charge = self.charge + 1
 
             if not game.res.sndCharge:isPlaying() then
-                game.res.sndCharge:seek(0)
+                game.res.sndCharge:stop()
                 game.res.sndCharge:play()
             end
         end

@@ -78,7 +78,7 @@ function Game:tick()
                 self.beepTicks = self.beepTicks - 1
 
                 if self.beepTicks == 0 then
-                    self.sndBeep:seek(0)
+                    self.sndBeep:stop()
 
                     if self.pressEffect == "win" then
                         self.sndBeep:setPitch(3/2)
@@ -94,7 +94,7 @@ function Game:tick()
                     self.activateTick = self.curTick
                     self.bgFlash = self.bgFlashMax
                 else
-                    self.sndBeep:seek(0)
+                    self.sndBeep:stop()
                     self.sndBeep:play()
                     -- self.text:set(tostring(self.beepTicks))
                 end
@@ -126,7 +126,7 @@ function Game:tick()
         end
 
         if lose then
-            self.sndLose:seek(0)
+            self.sndLose:stop()
             self.sndLose:play()
             self.gameEnded = true
 
