@@ -3,6 +3,10 @@ local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 local Json = require("json")
 
+-- ticksPerSec = 120
+-- rowsPerBeat = 4
+-- ticksPerRow = (60 / bpm) * ticksPerSec / rowsPerBeat
+
 local GRAVITY = 0.18
 local FLOOR_Y = 64
 local SPR_W = 8
@@ -91,9 +95,13 @@ function Game:new(mgr)
     self.res.imgMound = self:_loadP8Image(self:getRes("highground.png"))
     self.res.imgMound2 = self:_loadP8Image(self:getRes("highground2.png"))
 
-    self.res.sndCharge1 = love.sound.newSoundData(self:getRes("charge1.wav"))
-    self.res.sndCharge2 = love.sound.newSoundData(self:getRes("charge2.wav"))
-    self.res.sndCharge = mgr:newQueueableAudioSource(48000, 16, 1, 2)
+    self.res.sndCharge = mgr:newAudioSource(self:getRes("charge.wav"), "static")
+    self.res.sndJump = mgr:newAudioSource(self:getRes("jump.wav"), "static")
+    self.res.sndSuperJump = mgr:newAudioSource(self:getRes("super_jump.wav"), "static")
+    self.res.sndDie = mgr:newAudioSource(self:getRes("die.wav"), "static")
+    self.res.music = mgr:newAudioSource(self:getRes("music.wav"), "static")
+    self.res.music:setPitch(mgr:getTempoScale())
+    self.res.music:play()
 
     for _, r in pairs(self.res) do
         self:releaseOnUnload(r)
@@ -126,12 +134,6 @@ function Game:unload()
     self.entities = nil
 
     self.__super.unload(self)
-end
-
-function Game:rawUpdate()
-    if self.res.sndCharge:isPlaying() and self.res.sndCharge:getFreeBufferCount() > 0 then
-        self.res.sndCharge:queue(self.res.sndCharge2)
-    end
 end
 
 function Game:tick()
@@ -198,22 +200,24 @@ function Game:draw()
     -- draw entities
     Lg.setShader(self.palShader)
     for _, obj in pairs(self.entities) do
-        local sprX = obj.spriteX or 0
-        local sprY = obj.spriteY or 0
-        local drawX = math.round(obj.x + sprX) - scrollX
-        local drawY = math.round(obj.y + sprY)
+        if obj.visible then
+            local sprX = obj.spriteX or 0
+            local sprY = obj.spriteY or 0
+            local drawX = math.round(obj.x + sprX) - scrollX
+            local drawY = math.round(obj.y + sprY)
 
-        self:_resetPal()
-        self:_flushPal()
-        Lg.setColor(1, 1, 1)
+            self:_resetPal()
+            self:_flushPal()
+            Lg.setColor(1, 1, 1)
 
-        if obj.draw then
-            obj:draw(self, drawX, drawY)
-        elseif obj.sprite then
-            if obj.sprite.draw then
-                obj.sprite:draw(drawX, drawY)
-            else
-                Lg.draw(obj.sprite, drawX, drawY)
+            if obj.draw then
+                obj:draw(self, drawX, drawY)
+            elseif obj.sprite then
+                if obj.sprite.draw then
+                    obj.sprite:draw(drawX, drawY)
+                else
+                    Lg.draw(obj.sprite, drawX, drawY)
+                end
             end
         end
     end
@@ -244,6 +248,7 @@ function Game:_entCollisions()
     end
 
     -- X axis actor collisions
+    plr.hitWall = false
     for _, ent in pairs(collidingEnts) do
         if plr == ent then
             goto continue
@@ -256,6 +261,8 @@ function Game:_entCollisions()
                 plr.x = ent.x + ent.w
             end
             plr.xv = 0
+
+            plr.hitWall = true
         end
 
         ::continue::
@@ -268,6 +275,7 @@ function Game:_entCollisions()
     end
 
     -- floor collision
+    plr.hitCeiling = false
     plr.isOnFloor = false
     if plr.y + plr.h > FLOOR_Y then
         plr.y = FLOOR_Y - plr.h
@@ -286,6 +294,7 @@ function Game:_entCollisions()
                 plr.y = ent.y - plr.h
             else
                 plr.y = ent.y + ent.h
+                plr.hitCeiling = true
             end
             plr.yv = 0
         end
@@ -306,6 +315,7 @@ function Game:_newEntity(entType, ...)
     obj.w = 0
     obj.h = 0
     obj.gmult = 1.0
+    obj.visible = true
 
     obj:new(self, ...)
     table.insert(self.entities, obj)
@@ -431,13 +441,15 @@ Player.__index = Player
 ---@param y number
 ---@param moveSpeed number
 function Player:new(game, x, y, moveSpeed)
-    self.collision = true
+    self.flagMove = true
 
     self.x = x + 1
     self.y = y + 1
     self.w = 6
     self.h = 7
     self.isOnFloor = false
+    self.hitWall = false
+    self.hitCeiling = false
 
     self.xv = moveSpeed
     self.yv = 0
@@ -447,6 +459,7 @@ function Player:new(game, x, y, moveSpeed)
     self.jumpButton = 0
     self.chargeJumpFastDescend = false
     self.plrAnim = "walk"
+    self.dead = false
 
     self.sprite = Sprite.new(game.res.sresJelpi)
     self.spriteX = -1
@@ -454,11 +467,17 @@ function Player:new(game, x, y, moveSpeed)
 
     self.isStrobing = false
     self.strobeTick = 0
-
-    self.flagMove = true
 end
 
+---@param game microgame._runner
 function Player:tick(game)
+    if self.dead then
+        self.visible = false
+        return
+    elseif self.hitCeiling or self.hitWall then
+        self:_kill(game)
+    end
+
     if self.plrAnim ~= self.sprite.curAnim then
         self.sprite:play(self.plrAnim)
     end
@@ -524,23 +543,26 @@ function Player:tick(game)
         if self.charge >= 10 then
             self.yv = -3.8
             self.isDoingChargeJump = true
+            game.res.sndSuperJump:seek(0)
+            game.res.sndSuperJump:play()
             stopCharge = true
         elseif self.charge >= 8 and not game.manager:isButtonDown() then
             self.yv = -3
+            game.res.sndJump:seek(0)
+            game.res.sndJump:play()
             stopCharge = true
         else
             self.charge = self.charge + 1
 
             if not game.res.sndCharge:isPlaying() then
-                game.res.sndCharge:queue(game.res.sndCharge1)
-                game.res.sndCharge:queue(game.res.sndCharge2)
+                game.res.sndCharge:seek(0)
                 game.res.sndCharge:play()
             end
         end
 
         if stopCharge then
             self.charge = -1
-            game.res.sndCharge:stop()
+            game.res.sndCharge:stop() -- ugh, crackling...
             self.isCharging = false
         end
 
@@ -583,6 +605,29 @@ function Player:_spawnChargeParticle(game)
     local y = love.math.random(0, self.h - 1) + self.y
 
     game:_newEntity("boostParticle", x, y, -0)
+end
+
+
+---@param game microgame._runner
+function Player:_kill(game)
+    self.dead = true
+    self.xv = 0
+    self.yv = 0
+    game.win = false
+
+    game.res.sndDie:play()
+    game.res.music:stop()
+
+    local spawnX = math.round(self.x + self.w / 2)
+    local spawnY = math.round(self.y + self.h / 2)
+
+    local cnt = 40 -- let's have some aphex acid!!!!
+    for i=1, cnt do
+        local ang = (i-1) / cnt * math.pi*2
+        local vx = math.cos(ang) * 2
+        local vy = math.sin(ang) * 2
+        game:_newEntity("deathParticle", spawnX, spawnY, vx, vy)
+    end
 end
 
 ACTOR_INITS.player = Player
@@ -717,6 +762,30 @@ function BoostParticle:draw(game, drawX, drawY)
 end
 
 ACTOR_INITS.boostParticle = BoostParticle
+
+--------------------------------------------------------------------------------
+--- ACTOR: deathParticle
+--------------------------------------------------------------------------------
+
+local DeathParticle = {}
+DeathParticle.__index = DeathParticle
+
+function DeathParticle:new(game, x, y, vx, vy)
+    self.flagMove = true
+
+    self.x = x
+    self.y = y
+    self.xv = vx
+    self.yv = vy
+    self.gmult = 0
+end
+
+function DeathParticle:draw(game, drawX, drawY)
+    game:_setDrawColor(7)
+    Lg.rectangle("fill", drawX - 1, drawY - 1, 2, 2)
+end
+
+ACTOR_INITS.deathParticle = DeathParticle
 
 --------------------------------------------------------------------------------
 
