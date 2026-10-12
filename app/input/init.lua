@@ -11,6 +11,9 @@ local base_controls = {
     down = {'axis:lefty+', 'button:dpdown'},
 
     gameButton = {"button:a", "key:space"},
+    auxButton1 = {"button:b", "key:a"},
+    auxButton2 = {"button:y", "key:s"},
+    auxButton3 = {"button:x", "key:d"}
 }
 
 local function get_new_baton_config()
