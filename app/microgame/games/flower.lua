@@ -2,7 +2,7 @@ local GameBase = require("microgame.base")
 local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 
-local PETAL_RADIUS = 20
+local PETAL_BASE_RADIUS = 20
 local CURSOR_TORQUE = math.rad(0.2)
 
 ---@class microgame._flower: microgame.Game
@@ -32,18 +32,15 @@ function Game:new(mgr)
     self.cursorRotSpeed = math.rad(2 + self.manager.speed * 1)
 
     -- scale corresponds to # of petals
-    if self.manager.difficulty > 0 then
-        self.musicScale = ({SCALE_MAJOR, SCALE_OCTATONIC})[love.math.random(1, 2)]
-    else
-        self.musicScale = SCALE_MAJOR
-    end
+    self.musicScale = SCALE_MAJOR
     
     -- initialize petals
+    local petalRadius = PETAL_BASE_RADIUS - mgr.difficulty * 3
     local petalCount = #self.musicScale
     self.petals = {}
     for i=1, petalCount do
         local ang = (i-1) / petalCount * math.pi*2 - math.pi/2
-        local petal = self:_createPetal(ang)
+        local petal = self:_createPetal(ang, petalRadius)
         table.insert(self.petals, petal)
     end
 
@@ -51,7 +48,7 @@ function Game:new(mgr)
     self.petalsPlucked = 0
 
     self.cursorActive = false
-    self.maxAngleError = math.pi*2 / petalCount * 0.5
+    self.maxAngleError = math.rad(({24, 17, 12})[mgr.difficulty+1])
 
     self.heartIsBroken = petalCount % 2 == 1
 
@@ -103,7 +100,7 @@ function Game:draw()
     -- draw petals
     for _, petal in pairs(self.petals) do
         Lg.setColor(1, 1, 1)
-        Lg.circle("fill", petal.x, petal.y, PETAL_RADIUS)
+        Lg.circle("fill", petal.x, petal.y, petal.r)
     end
 
     -- draw pistil
@@ -128,19 +125,23 @@ function Game:draw()
         Lg.push()
         Lg.translate(cursorX, cursorY)
         Lg.rotate(self.cursorAng + math.pi/2)
-        Lg.rectangle("fill", -rectW/2, -rectH/2, rectW/2, rectH/2)
+        Lg.rectangle("fill", -rectW/2, -rectH/2, rectW, rectH)
         Lg.pop()
     end
 end
 
 --------------------------------------------------------------------------------
 
-function Game:_createPetal(ang)
+---@param ang number
+---@param r number
+---@return table
+function Game:_createPetal(ang, r)
     local petal = {}
 
-    local distFromCenter = self.flowerR + PETAL_RADIUS / 2
+    local distFromCenter = self.flowerR + r/2
     petal.x = math.cos(ang) * distFromCenter + self.flowerX
     petal.y = math.sin(ang) * distFromCenter + self.flowerY
+    petal.r = r
     petal.xv = 0
     petal.yv = 0
     petal.attached = true
@@ -164,6 +165,8 @@ function Game:_pluck()
     end
 
     if targetPetal then
+        print("min ang diff", math.deg(minAngDiff))
+
         targetPetal.attached = false
         targetPetal.xv = math.cos(targetPetal.ang) * 2
         targetPetal.yv = math.sin(targetPetal.ang) * 2
