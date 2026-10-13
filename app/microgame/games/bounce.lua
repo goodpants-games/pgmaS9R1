@@ -200,6 +200,7 @@ function Game:draw()
 
     -- draw ball
     Lg.setColor(1, 1, 1)
+    Lg.setLineWidth(1)
     Lg.setLineStyle("rough")
 
     local rx = self.ballR * math.pow(2.0, self.ballSquash)
