@@ -465,6 +465,7 @@ function itemUseProcedures.reroll(item, state)
 
     state.gameName = GAME_SET[math.random(1, #GAME_SET)]
     runner:_loadMicrogame(state.gameName)
+    runner.gameManager.tickSpeed = runner.gameManager.tickSpeed * 1.5
     state.verbTextTimer = 1.0
 end
 
@@ -781,6 +782,16 @@ runStates.itemSelect = ItemSelectState
 function ItemSelectState:new(runner)
     self.runner = runner
 
+    -- determine if it should first ask the user to discard an item, because
+    -- their inventory is full
+    self.removeItem = true
+    for i=1, 3 do
+        if not runner.items[i].id then
+            self.removeItem = false
+            break        
+        end
+    end
+
     local itemSet = table.shuffle(table.shallow_copy(ITEM_SET))
 
     self.items = {}
@@ -789,6 +800,8 @@ function ItemSelectState:new(runner)
             id = itemSet[i],
             x = GameConf.scrW / 2 + (i-1) * (ITEM_SQUARE_WIDTH + 10),
             y = GameConf.scrH / 2,
+
+            ticks = self.removeItem and 0 or 120,
 
             bgColor = 0x1d1d1d,
             strokeColor = 0xff0000,
@@ -820,14 +833,6 @@ function ItemSelectState:new(runner)
     self.itemNameDesc = Lg.newText(FontRes.monogram)
 
     self:_updateText()
-
-    self.removeItem = true
-    for i=1, 3 do
-        if not runner.items[i].id then
-            self.removeItem = false
-            break        
-        end
-    end
 end
 
 function ItemSelectState:rawUpdate(dt)
@@ -861,7 +866,7 @@ function ItemSelectState:tick()
     end
 
     if releasedBtn then
-        if self.confirmTimer < CONFIRM_MIN then
+        if not self.removeItem and self.confirmTimer < CONFIRM_MIN then
             self.selectedItem = self.selectedItem + 1
             if self.selectedItem > #self.items then
                 self.selectedItem = 1
@@ -877,7 +882,7 @@ function ItemSelectState:tick()
         local hue = (self.tickCnt + i * 13) / 40
         local val = 1.0
 
-        if i == self.selectedItem then
+        if i == self.selectedItem and not self.removeItem then
             item.bgColor = 0x1d1d1d
             item.itemColor = 0xffffff
         else
@@ -886,9 +891,15 @@ function ItemSelectState:tick()
             item.itemColor = 0x7f7f7f
         end
 
+        if not self.removeItem then
+            item.ticks = item.ticks + 1
+        end
+
+        local animTick = math.max(0, item.ticks - (i-1) * 12)
+
         local r, g, b = Color.hsv_to_rgb(hue, 0.5, val)
         item.strokeColor = Color.pack_rgb(r, g, b)
-        item.y = cy + math.sin((self.tickCnt + i * 12) / 40 * math.pi*2) * 2
+        item.y = cy + math.sin(animTick / 60 * math.pi*2) * 4
         -- item.bgColor = 0x000000
     end
 
@@ -919,19 +930,28 @@ function ItemSelectState:draw()
     Lg.translate(scrX, scrY)
     Lg.setFont(FontRes.monogram)
 
+    Lg.setColor(0, 0, 0)
+    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
+
     if self.removeItem then
         self:_itemDiscardDraw()
+    end
+
+    for _, item in pairs(self.items) do
+        self:_drawItem(item)
+    end
+
+    self:_drawConfirmTimer(cy + 30)
+
+    -- draw item description
+    if self.removeItem then
+        Lg.setColor(1, 1, 1)
+        local text =
+[[Your inventory is full!
+Use an item to discard it.
+Hold the button to skip.]]
+        Lg.printf(text, 0, cy + 34, GameConf.scrW, "center")
     else
-        Lg.setColor(0, 0, 0)
-        Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
-
-        for _, item in pairs(self.items) do
-            self:_drawItem(item)
-        end
-
-        self:_drawConfirmTimer(cy + 30)
-
-        -- draw item description
         Lg.setColor(1, 1, 1)
         Lg.draw(self.itemNameText, 0, cy + 34)
 
@@ -945,13 +965,8 @@ end
 function ItemSelectState:_itemDiscardDraw()
     local cy = GameConf.scrH / 2
 
-    Lg.setColor(0.5, 0, 0)
-    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
-
     Lg.setColor(1, 1, 1)
-    Lg.printf("Use an item to discard it.\nHold the button to skip.", 0, cy, GameConf.scrW, "center")
-
-    self:_drawConfirmTimer(cy + 10)
+    Lg.printf("Your inventory is full!\nUse an item to discard it.\nHold the button to skip.", 0, cy + 34, GameConf.scrW, "center")
 end
 
 function ItemSelectState:_drawConfirmTimer(y)
