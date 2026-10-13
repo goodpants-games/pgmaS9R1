@@ -35,7 +35,7 @@ local SPEED_UP_POINTS = {
 }
 local SHOP_POINTS = {
     -- level 1
-    { 1, 14 },
+    { 8, 14 },
     -- level 2
     { 1, 6, 12 },
     -- level 3
@@ -867,6 +867,7 @@ function ItemSelectState:auxButtonPressed(idx)
         runner.items[idx].data = nil
 
         self.removeItem = false
+        self:_updateText()
     end
 end
 
@@ -955,10 +956,6 @@ function ItemSelectState:draw()
     -- Lg.setColor(0, 0, 0)
     -- Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
 
-    if self.removeItem then
-        self:_itemDiscardDraw()
-    end
-
     Lg.push()
     Lg.translate(0, uiBase)
     for _, item in pairs(self.items) do
@@ -970,16 +967,13 @@ function ItemSelectState:draw()
 
     -- draw item description
     if self.removeItem then
-        local text =
-[[Your inventory is full!
-Use an item to discard it.
-Hold the button to skip.]]
+        local drawX = math.round(cx - 160/2)
+        local drawY = uiBase + 34
 
-        -- fix text being fucked up idk
         Lg.setColor(0, 0, 0)
-        Lg.printf(text, 1, uiBase + 35, GameConf.scrW, "center")
+        Lg.draw(self.itemNameDesc, drawX+1, drawY+1)
         Lg.setColor(1, 1, 1)
-        Lg.printf(text, 0, uiBase + 34, GameConf.scrW, "center")
+        Lg.draw(self.itemNameDesc, drawX, drawY)
 
     else
         Lg.setColor(0, 0, 0)
@@ -1012,13 +1006,6 @@ Hold the button to skip.]]
     Lg.pop()
 end
 
-function ItemSelectState:_itemDiscardDraw()
-    local cy = GameConf.scrH / 2
-
-    Lg.setColor(1, 1, 1)
-    Lg.printf("Your inventory is full!\nUse an item to discard it.\nHold the button to skip.", 0, cy + 34, GameConf.scrW, "center")
-end
-
 function ItemSelectState:_drawConfirmTimer(y)
     -- draw confirm timer
     if self.confirmTimer > 10 then
@@ -1037,7 +1024,15 @@ function ItemSelectState:_updateText()
     self.itemNameText:setf(item.name, GameConf.scrW, "center")
 
     self.itemNameDesc:clear()
-    self.itemNameDesc:setf(item.desc, 160, "center")
+
+    local text = item.desc
+    if self.removeItem then
+        text = [[Your inventory is full!
+Use an item to discard it.
+Hold the button to skip.]]
+    end
+
+    self.itemNameDesc:setf(text, 160, "center")
 end
 
 function ItemSelectState:_drawItem(item)
