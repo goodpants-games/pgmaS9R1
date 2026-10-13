@@ -33,6 +33,14 @@ local SPEED_UP_POINTS = {
     -- level 3
     { 4, 8 }
 }
+local SHOP_POINTS = {
+    -- level 1
+    { 8, 14 },
+    -- level 2
+    { 1, 6, 12 },
+    -- level 3
+    { 1, 10 }
+}
 
 if false then
     print("INSERT DEBUG SPEED UP POINTS")
@@ -64,7 +72,7 @@ local Runner = batteries.class {
 ---@type {[string]:microgame.Runner.State}
 local runStates = {}
 
----@type {[string]:fun(item:microgame.Runner.Item, state:any)}
+---@type {[string]:fun(item:microgame.Runner.Item, state:any):boolean?}
 local itemUseProcedures = {}
 
 function Runner:new(params)
@@ -89,12 +97,15 @@ function Runner:new(params)
         self.gameList = table.shuffle(GAME_SET)
     end
     self.gameListIdx = 1
+    ---@type string?
+    self.forceGame = nil
 
     self.gameManager = GameManager()
     self.gameManager.difficulty = params.difficulty or 0
     self.gameManager.speed = params.speed or 0
 
     self.lives = MAX_LIVES
+    self.lifeShields = 0
     self.gamesCompleted = 0
     -- current game within difficulty level
     self.round = 0
@@ -133,8 +144,9 @@ function Runner:new(params)
     end
 
     self.pressedAuxButtons = { false, false, false }
+    self.canUseItems = false
 
-    self:_switchState("enterGame")
+    self:_nextRound()
 end
 
 function Runner:release()
@@ -190,7 +202,9 @@ function Runner:tick()
             if self.state.auxButtonPressed then
                 self.state:auxButtonPressed(i)
             end
+
             self.pressedAuxButtons[i] = false
+            self:_useItem(i)
         end
     end
 end
@@ -198,6 +212,7 @@ end
 function Runner:draw()
     self.state:draw()
 
+    Lg.setColor(1, 1, 1)
     Lg.draw(self.res.shellImg, 0, 0)
     
     -- draw lives counter
@@ -207,6 +222,9 @@ function Runner:draw()
         local c = 1
         if i <= self.lives then
             c = 2
+            if i > self.lives - self.lifeShields then
+                c = 3
+            end
         end
 
         Lg.setColor(1, 1, 1)
@@ -222,6 +240,7 @@ function Runner:draw()
         local drawPos = UI_ITEM_SLOT_POSITIONS[i]
 
         local imgName = item.id or "nil"
+        Lg.setColor(1, 1, 1)
         itemsSpr:play(imgName)
         itemsSpr:draw(math.round(drawPos.x + drawOx), math.round(drawPos.y + drawOy))
     end
@@ -234,15 +253,26 @@ function Runner:draw()
     -- Lg.setScissor()
 end
 
----@param newState string
+function Runner:getTickSpeed()
+    return 1.0 + self.lifeShields * 0.5
+end
+
+---@param newState string|function
 ---@param ... any
 function Runner:_switchState(newState, ...)
-    assert(runStates[newState], ("invalid state '%s'"):format(newState))
+    if type(newState) == "function" then
+        self._queuedStateSwitch = {
+            ctor = newState,
+            args = { ... }
+        }
+    else
+        assert(runStates[newState], ("invalid state '%s'"):format(newState))
 
-    self._queuedStateSwitch = {
-        ctor = runStates[newState],
-        args = { ... }
-    }
+        self._queuedStateSwitch = {
+            ctor = runStates[newState],
+            args = { ... }
+        }
+    end
 end
 
 function Runner:_getNextMicrogame()
@@ -299,6 +329,63 @@ function Runner:_loadMicrogame(name)
     self.gameManager:loadGame(gameCtor)
 
     self.verbText:set(self.gameManager.game.verb)
+end
+
+---@param idx integer
+function Runner:_useItem(idx)
+    if not self.canUseItems then
+        return
+    end
+
+    local item = self.items[idx]
+    local itemId = item.id
+    local permittedItems = self.state.permittedItems
+    if not (permittedItems and table.index_of(permittedItems, itemId)) then
+        return
+    end
+
+    if not itemUseProcedures[itemId](item, self.state) then
+        item.id = nil
+        item.data = nil
+    end
+    self.canUseItems = false
+    print("set it to false", self.canUseItems)
+end
+
+---@param self microgame.Runner
+---@param ... any
+local function nextRoundCallback(self, ...)
+    self.canUseItems = false
+    self.round = self.round + 1
+
+    -- ouch
+    if self.lostGame then
+        if self.lifeShields > 0 then
+            self.lifeShields = self.lifeShields - 1
+        else
+            self.lives = self.lives - 1
+        end
+
+        -- restart game when out of lives
+        if self.lives == 0 and not Debug.enabled then
+            Sceneman.switchScene("game_runner", {})
+        end
+    end
+
+    local gameMgr = self.gameManager
+    local levelData = SHOP_POINTS[gameMgr.difficulty + 1]
+    print("level", gameMgr.difficulty)
+    local enterShop = table.index_of(levelData, self.round) ~= nil
+
+    if enterShop then
+        return runStates.itemSelect(self, ...)
+    else
+        return runStates.enterGame(self, ...)
+    end
+end
+
+function Runner:_nextRound()
+    self:_switchState(nextRoundCallback)
 end
 
 function Runner:_debugCommand()
@@ -366,6 +453,75 @@ end
 
 
 
+
+--------------------------------------------------------------------------------
+--- Item Database
+--------------------------------------------------------------------------------
+
+-- reroll --
+function itemUseProcedures.reroll(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+
+    state.gameName = GAME_SET[math.random(1, #GAME_SET)]
+    runner:_loadMicrogame(state.gameName)
+    state.verbTextTimer = 1.0
+end
+
+-- moreTime --
+function itemUseProcedures.moreTime(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+    local gameMgr = runner.gameManager
+    gameMgr.timer = math.min(gameMgr.gameLength, gameMgr.timer + 2)
+
+    if gameMgr.game.onTimerIncrease then
+        gameMgr.game:onTimerIncrease()
+    end
+end
+
+-- slow --
+function itemUseProcedures.slow(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+    local gameMgr = runner.gameManager
+    gameMgr.tickSpeed = gameMgr.tickSpeed * 0.5
+end
+
+-- shield --
+function itemUseProcedures.shield(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+    local gameMgr = runner.gameManager
+
+    runner.lifeShields = runner.lifeShields + 1
+    gameMgr.tickSpeed = runner:getTickSpeed()
+end
+
+-- save1 --
+function itemUseProcedures.save1(item, state)
+    item.id = "save2"
+    item.data = state.gameName
+
+    return true
+end
+
+-- save2 --
+function itemUseProcedures.save2(item, state)
+    ---@type microgame.Runner
+    local runner = state.runner
+    runner.forceGame = item.data
+end
+
+
+
+
+
+
+
+
+
+
 --------------------------------------------------------------------------------
 --- STATE: enterGame
 --------------------------------------------------------------------------------
@@ -380,17 +536,7 @@ function EnterGameState:new(runner)
     self.runner = runner
     self.time = 0
     
-    runner.round = runner.round + 1
     self.bossRound = runner.round % BOSS_ROUND_INTERVAL == 0
-
-    -- ouch
-    if runner.lostGame then
-        runner.lives = runner.lives - 1
-        -- restart game when out of lives
-        if runner.lives == 0 and not Debug.enabled then
-            Sceneman.switchScene("game_runner", {})
-        end
-    end
 
     local gameMgr = runner.gameManager
     local levelData = SPEED_UP_POINTS[gameMgr.difficulty + 1]
@@ -448,62 +594,11 @@ function EnterGameState:draw()
     Lg.pop()
 end
 
-
-
-
-
-
-
-
-
-
---------------------------------------------------------------------------------
---- Item Database
---------------------------------------------------------------------------------
-
--- reroll --
-function itemUseProcedures.reroll(item, state)
-    ---@type microgame.Runner
-    local runner = state.runner
-
-    runner:_loadMicrogame(GAME_SET[math.random(1, #GAME_SET)])
-    state.verbTextTimer = 1.0
-end
-
--- moreTime --
-function itemUseProcedures.moreTime(item, state)
-    ---@type microgame.Runner
-    local runner = state.runner
-    local gameMgr = runner.gameManager
-    gameMgr.timer = math.min(gameMgr.gameLength, gameMgr.timer + 2)
-
-    if gameMgr.game.onTimerIncrease then
-        gameMgr.game:onTimerIncrease()
-    end
-end
-
--- slow --
-function itemUseProcedures.slow(item, state)
-    ---@type microgame.Runner
-    local runner = state.runner
-    local gameMgr = runner.gameManager
-    gameMgr.tickSpeed = gameMgr.tickSpeed * 0.5
-end
-
-
-
-
-
-
-
-
-
-
 --------------------------------------------------------------------------------
 --- STATE: play
 --------------------------------------------------------------------------------
 local PLAY_STATE_PERMITTED_ITEMS = {
-    "reroll", "moreTime", "slow", "shield", "save1"
+    "reroll", "moreTime", "slow", "shield", "save1", "save2",
 }
 
 ---@class microgame.Runner.PlayState: microgame.Runner.State
@@ -516,24 +611,19 @@ runStates.play = PlayState
 function PlayState:new(runner)
     self.permittedItems = PLAY_STATE_PERMITTED_ITEMS
     self.runner = runner
+    runner.canUseItems = true
     self.verbTextTimer = 1.0
 
-    runner.res.bombFuseFlameSpr:play("fuse")
-
-    runner:_loadMicrogame(runner:_getNextMicrogame())
-end
-
-function PlayState:auxButtonPressed(idx)
-    local item = self.runner.items[idx]
-    local itemId = item.id
-    if not table.index_of(self.permittedItems, itemId) then
-        return
+    if runner.forceGame then
+        self.gameName = runner.forceGame
+        runner.forceGame = nil
+    else
+        self.gameName = runner:_getNextMicrogame()
     end
-    
-    print("use item " .. itemId)
 
-    item.id = nil
-    itemUseProcedures[itemId](item, self)
+    runner.res.bombFuseFlameSpr:play("fuse")
+    runner:_loadMicrogame(self.gameName)
+    runner.gameManager.tickSpeed = runner:getTickSpeed()
 end
 
 ---@param dt number
@@ -563,7 +653,7 @@ function PlayState:tick()
     end
     
     if runner.gameManager.timer == 0 then
-        runner:_switchState("enterGame")
+        runner:_nextRound()
 
         -- if not self.gameManager.game.win then
         --     self.lives = self.lives - 1
@@ -638,6 +728,288 @@ function PlayState:draw()
         Lg.setColor(1, 1, 1)
         bombFuse:draw(bombDrawX + barWidth + 4, 170)
     end
+end
+
+--------------------------------------------------------------------------------
+--- STATE: itemSelect
+--------------------------------------------------------------------------------
+local ITEM_SET = {
+    "reroll",
+    "moreTime",
+    "slow",
+    "shield",
+    "save1"
+    -- "save2"
+}
+
+local ITEM_DESCS = {
+    reroll = {
+        name = "Dice",
+        desc = "Reroll your destiny."
+    },
+    moreTime = {
+        name = "Watch",
+        desc = "If only we could have more time."
+    },
+    slow = {
+        name = "Timeglass",
+        desc = "The world around you seems to move at a slower pace."
+    },
+    shield = {
+        name = "Life Shield",
+        desc = "Safety, but at what cost?"
+    },
+    save1 = {
+        name = "Disk",
+        desc = "Your devices remember more than you do."
+    }
+}
+
+local Color = batteries.colour
+local ITEM_SQUARE_WIDTH = 40
+local ITEM_SQUARE_HEIGHT = 40
+local CONFIRM_LENGTH = 60
+local CONFIRM_MIN = 10
+
+---@class microgame.Runner.ItemSelectState: microgame.Runner.State
+local ItemSelectState = batteries.class {
+    name = "microgame.Runner.ItemSelectState"
+}
+runStates.itemSelect = ItemSelectState
+
+---@param runner microgame.Runner
+function ItemSelectState:new(runner)
+    self.runner = runner
+
+    local itemSet = table.shuffle(table.shallow_copy(ITEM_SET))
+
+    self.items = {}
+    for i=1, 2 do
+        self.items[i] = {
+            id = itemSet[i],
+            x = GameConf.scrW / 2 + (i-1) * (ITEM_SQUARE_WIDTH + 10),
+            y = GameConf.scrH / 2,
+
+            bgColor = 0x1d1d1d,
+            strokeColor = 0xff0000,
+            itemColor = 0xffffff
+        }
+    end
+
+    self.selectedItem = 1
+
+    -- center items
+    local avgX = 0
+    for _, item in pairs(self.items) do
+        avgX = avgX + item.x
+    end
+    avgX = avgX / #self.items
+
+    for _, item in pairs(self.items) do
+        item.x = item.x - avgX + GameConf.scrW / 2
+    end
+
+    self.tickCnt = 0
+
+    self.pressedBtn = false
+    self.releasedBtn = false
+    self.heldBtn = false
+
+    self.confirmTimer = 0
+    self.itemNameText = Lg.newText(FontRes.monogram)
+    self.itemNameDesc = Lg.newText(FontRes.monogram)
+
+    self:_updateText()
+
+    self.removeItem = true
+    for i=1, 3 do
+        if not runner.items[i].id then
+            self.removeItem = false
+            break        
+        end
+    end
+end
+
+function ItemSelectState:rawUpdate(dt)
+    local device = Input.players[1]
+    self.pressedBtn = device:pressed("gameButton")
+    self.releasedBtn = device:released("gameButton")
+    self.heldBtn = device:down("gameButton")
+end
+
+function ItemSelectState:auxButtonPressed(idx)
+    local runner = self.runner
+    if self.removeItem then
+        runner.items[idx].id = nil
+        runner.items[idx].data = nil
+
+        self.removeItem = false
+    end
+end
+
+function ItemSelectState:tick()
+    local runner = self.runner
+    local pressedBtn = self.pressedBtn
+    local releasedBtn = self.releasedBtn
+    local heldBtn = self.heldBtn
+
+    self.pressedBtn = false
+    self.releasedBtn = false
+
+    if heldBtn then
+        self.confirmTimer = self.confirmTimer + 1
+    end
+
+    if releasedBtn then
+        if self.confirmTimer < CONFIRM_MIN then
+            self.selectedItem = self.selectedItem + 1
+            if self.selectedItem > #self.items then
+                self.selectedItem = 1
+            end
+            self:_updateText()
+        end
+
+        self.confirmTimer = 0
+    end
+
+    local cy = GameConf.scrH / 2
+    for i, item in pairs(self.items) do
+        local hue = (self.tickCnt + i * 13) / 40
+        local val = 1.0
+
+        if i == self.selectedItem then
+            item.bgColor = 0x1d1d1d
+            item.itemColor = 0xffffff
+        else
+            val = 0.5
+            item.bgColor = 0x000000
+            item.itemColor = 0x7f7f7f
+        end
+
+        local r, g, b = Color.hsv_to_rgb(hue, 0.5, val)
+        item.strokeColor = Color.pack_rgb(r, g, b)
+        item.y = cy + math.sin((self.tickCnt + i * 12) / 40 * math.pi*2) * 2
+        -- item.bgColor = 0x000000
+    end
+
+    if self.confirmTimer == CONFIRM_LENGTH then
+        if not self.removeItem then
+            for _, item in ipairs(runner.items) do
+                if item.id == nil then
+                    item.id = self.items[self.selectedItem].id
+                    item.data = nil
+                    break
+                end
+            end
+        end
+
+        runner:_switchState("enterGame")    
+    end
+
+    self.tickCnt = self.tickCnt + 1
+end
+
+function ItemSelectState:draw()
+    local runner = self.runner
+    local scrX, scrY = runner.scrX, runner.scrY
+    local cx = GameConf.scrW / 2
+    local cy = GameConf.scrH / 2
+
+    Lg.push()
+    Lg.translate(scrX, scrY)
+    Lg.setFont(FontRes.monogram)
+
+    if self.removeItem then
+        self:_itemDiscardDraw()
+    else
+        Lg.setColor(0, 0, 0)
+        Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
+
+        for _, item in pairs(self.items) do
+            self:_drawItem(item)
+        end
+
+        self:_drawConfirmTimer(cy + 30)
+
+        -- draw item description
+        Lg.setColor(1, 1, 1)
+        Lg.draw(self.itemNameText, 0, cy + 34)
+
+        Lg.setColor(0.5, 0.5, 0.5)
+        Lg.draw(self.itemNameDesc, math.round(cx - 120/2), math.round(cy + 44))
+    end
+
+    Lg.pop()
+end
+
+function ItemSelectState:_itemDiscardDraw()
+    local cy = GameConf.scrH / 2
+
+    Lg.setColor(0.5, 0, 0)
+    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
+
+    Lg.setColor(1, 1, 1)
+    Lg.printf("Use an item to discard it.\nHold the button to skip.", 0, cy, GameConf.scrW, "center")
+
+    self:_drawConfirmTimer(cy + 10)
+end
+
+function ItemSelectState:_drawConfirmTimer(y)
+    -- draw confirm timer
+    if self.confirmTimer > 10 then
+        local x = math.round(GameConf.scrW / 2)
+        local y = math.round(y)
+        local t = (self.confirmTimer - CONFIRM_MIN) / (CONFIRM_LENGTH - CONFIRM_MIN)
+        local w = math.round(t * 100)
+        local r,g,b = Color.hsv_to_rgb(t, 1, 1)
+        Lg.setColor(r, g, b)
+        self:_centerRect("fill", x, y, w, 8)
+    end
+end
+
+function ItemSelectState:_updateText()
+    local item = ITEM_DESCS[self.items[self.selectedItem].id]
+    self.itemNameText:setf(item.name, GameConf.scrW, "center")
+
+    self.itemNameDesc:clear()
+    self.itemNameDesc:setf(item.desc, 120, "center")
+end
+
+function ItemSelectState:_drawItem(item)
+    local itemsSpr = self.runner.res.itemsSpr--[[@as pklove.Sprite]]
+    local itemX = math.round(item.x)
+    local itemY = math.round(item.y)
+
+    Lg.setColor(Color.unpack_rgb(item.bgColor))
+    self:_centerRect("fill", itemX, itemY, ITEM_SQUARE_WIDTH, ITEM_SQUARE_HEIGHT)
+
+    Lg.setColor(Color.unpack_rgb(item.strokeColor))
+    Lg.setLineWidth(2)
+    self:_centerRect("line", itemX, itemY, ITEM_SQUARE_WIDTH, ITEM_SQUARE_HEIGHT)
+
+    itemsSpr:play(item.id)
+    Lg.setColor(Color.unpack_rgb(item.itemColor))
+    itemsSpr:draw(itemX, itemY, 0, 2, 2)
+end
+
+---@param mode "fill"|"line"
+---@param x number
+---@param y number
+---@param w number
+---@param h number
+function ItemSelectState:_centerRect(mode, x, y, w, h)
+    Lg.rectangle(mode, x - w/2, y - h/2, w, h)
+end
+
+---@param text love.Text
+---@param x number
+---@param y number
+---@param sx number?
+---@param sy number?
+function ItemSelectState:_centerText(text, x, y, sx, sy)
+    x = math.round(x - text:getWidth() / 2)
+    y = math.round(y)
+    Lg.draw(text, x, y, 0, sx or 1, sy or 1)
 end
 
 --------------------------------------------------------------------------------
