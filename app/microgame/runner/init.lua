@@ -35,7 +35,7 @@ local SPEED_UP_POINTS = {
 }
 local SHOP_POINTS = {
     -- level 1
-    { 8, 14 },
+    { 1, 14 },
     -- level 2
     { 1, 6, 12 },
     -- level 3
@@ -127,6 +127,8 @@ function Runner:new(params)
 
     self.res.itemsSpr = Sprite.new("/res/sprites/items.json")
     self.res.itemsSpr.alignment = "center"
+
+    self.res.imgBgBlackGradient = Lg.newImage("/res/img/bg_black_gradient.png")
     
     ---@type microgame.Runner.State
     self.state = nil
@@ -799,7 +801,7 @@ function ItemSelectState:new(runner)
         self.items[i] = {
             id = itemSet[i],
             x = GameConf.scrW / 2 + (i-1) * (ITEM_SQUARE_WIDTH + 10),
-            y = GameConf.scrH / 2,
+            y = 0,
 
             ticks = self.removeItem and 0 or 120,
 
@@ -832,7 +834,23 @@ function ItemSelectState:new(runner)
     self.itemNameText = Lg.newText(FontRes.monogram)
     self.itemNameDesc = Lg.newText(FontRes.monogram)
 
+    self.res = {}
+    self.res.beetleSpr = Sprite.new("/res/sprites/firebeetle/firebeetle_shop.json")
+    self.res.beetleSpr:play("think")
+
     self:_updateText()
+end
+
+function ItemSelectState:exit()
+    for _, res in pairs(self.res) do
+        if res.typeOf and res:typeOf("Source") and res.stop then
+            res:stop()
+        end
+
+        if res.release then
+            res:release()
+        end
+    end
 end
 
 function ItemSelectState:rawUpdate(dt)
@@ -858,6 +876,8 @@ function ItemSelectState:tick()
     local releasedBtn = self.releasedBtn
     local heldBtn = self.heldBtn
 
+    self.res.beetleSpr:update(App.tickLength)
+
     self.pressedBtn = false
     self.releasedBtn = false
 
@@ -877,7 +897,6 @@ function ItemSelectState:tick()
         self.confirmTimer = 0
     end
 
-    local cy = GameConf.scrH / 2
     for i, item in pairs(self.items) do
         local hue = (self.tickCnt + i * 13) / 40
         local val = 1.0
@@ -899,7 +918,7 @@ function ItemSelectState:tick()
 
         local r, g, b = Color.hsv_to_rgb(hue, 0.5, val)
         item.strokeColor = Color.pack_rgb(r, g, b)
-        item.y = cy + math.sin(animTick / 60 * math.pi*2) * 4
+        item.y = math.sin(animTick / 60 * math.pi*2) * 4
         -- item.bgColor = 0x000000
     end
 
@@ -925,38 +944,69 @@ function ItemSelectState:draw()
     local scrX, scrY = runner.scrX, runner.scrY
     local cx = GameConf.scrW / 2
     local cy = GameConf.scrH / 2
+    local uiBase = cy + 12
 
     Lg.push()
     Lg.translate(scrX, scrY)
     Lg.setFont(FontRes.monogram)
 
-    Lg.setColor(0, 0, 0)
-    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
+    Lg.setColor(1, 1, 1)
+    Lg.draw(runner.res.imgBgBlackGradient, 0, 0)
+    -- Lg.setColor(0, 0, 0)
+    -- Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
 
     if self.removeItem then
         self:_itemDiscardDraw()
     end
 
+    Lg.push()
+    Lg.translate(0, uiBase)
     for _, item in pairs(self.items) do
         self:_drawItem(item)
     end
+    Lg.pop()
 
-    self:_drawConfirmTimer(cy + 30)
+    self:_drawConfirmTimer(uiBase + 30)
 
     -- draw item description
     if self.removeItem then
-        Lg.setColor(1, 1, 1)
         local text =
 [[Your inventory is full!
 Use an item to discard it.
 Hold the button to skip.]]
-        Lg.printf(text, 0, cy + 34, GameConf.scrW, "center")
-    else
-        Lg.setColor(1, 1, 1)
-        Lg.draw(self.itemNameText, 0, cy + 34)
 
+        -- fix text being fucked up idk
+        Lg.setColor(0, 0, 0)
+        Lg.printf(text, 1, uiBase + 35, GameConf.scrW, "center")
+        Lg.setColor(1, 1, 1)
+        Lg.printf(text, 0, uiBase + 34, GameConf.scrW, "center")
+
+    else
+        Lg.setColor(0, 0, 0)
+        Lg.draw(self.itemNameText, 1, uiBase + 35)
+        Lg.setColor(1, 1, 1)
+        Lg.draw(self.itemNameText, 0, uiBase + 34)
+
+        local drawX = math.round(cx - 160/2)
+        local drawY = math.round(uiBase + 44)
+        Lg.setColor(0, 0, 0)
+        Lg.draw(self.itemNameDesc, drawX+1, drawY+1)
         Lg.setColor(0.5, 0.5, 0.5)
-        Lg.draw(self.itemNameDesc, math.round(cx - 120/2), math.round(cy + 44))
+        Lg.draw(self.itemNameDesc, drawX, drawY)
+    end
+
+    -- draw beetle thing
+    local counterY = 64
+
+    do
+        local sx, sy, sw, sh = Lg.getScissor()
+        Lg.intersectScissor(scrX, scrY, GameConf.scrW, counterY)
+        Lg.setColor(1, 1, 1)
+        self.res.beetleSpr:draw(cx, 40)
+        Lg.setScissor(sx, sy, sw, sh)
+
+        Lg.setColor(1, 0, 0)
+        Lg.rectangle("fill", 0, counterY, GameConf.scrW, 2)
     end
 
     Lg.pop()
@@ -987,7 +1037,7 @@ function ItemSelectState:_updateText()
     self.itemNameText:setf(item.name, GameConf.scrW, "center")
 
     self.itemNameDesc:clear()
-    self.itemNameDesc:setf(item.desc, 120, "center")
+    self.itemNameDesc:setf(item.desc, 160, "center")
 end
 
 function ItemSelectState:_drawItem(item)
