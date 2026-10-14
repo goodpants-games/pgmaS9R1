@@ -190,8 +190,7 @@ function Game:draw()
     Lg.draw(self.bgImg, 0, 0, 0, 2, 2)
 
     -- set scissor box so sprites don't get drawn in front of wall
-    local scX, scY, scW, scH = Lg.getScissor()
-    Lg.intersectScissor(scX, scY, scW, 142)
+    Lg.intersectScissor(0, 0, Display.scrW, 142)
     
     -- draw robot
     Lg.setColor(1, 1, 1)

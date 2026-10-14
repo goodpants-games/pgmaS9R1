@@ -3,7 +3,8 @@ local GameManager = require("microgame.manager")
 local FontRes = require("fontres")
 local Sprite = require("sprite")
 local Input = require("input")
-local Display = require("display")
+
+Display = require("display")
 
 local GAME_SET = {
     "ssi_swing",
@@ -955,11 +956,10 @@ function ItemSelectState:draw()
     local counterY = 64
 
     do
-        local sx, sy, sw, sh = Lg.getScissor()
-        Lg.intersectScissor(scrX, scrY, GameConf.scrW, counterY)
+        Lg.setScissor(0, 0, GameConf.scrW, counterY)
         Lg.setColor(1, 1, 1)
         self.res.beetleSpr:draw(cx, 40)
-        Lg.setScissor(sx, sy, sw, sh)
+        Lg.setScissor()
 
         Lg.setColor(1, 0, 0)
         Lg.rectangle("fill", 0, counterY, GameConf.scrW, 2)

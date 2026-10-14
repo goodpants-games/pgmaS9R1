@@ -46,6 +46,8 @@ function Display.init()
 
     res.itemsSpr = Sprite.new("/res/sprites/items.json")
     res.itemsSpr.alignment = "center"
+
+    Display.canvas = Lg.newCanvas(Display.scrW, Display.scrH, {dpiscale = 1.0})
 end
 
 ---Tick the display. Should only be called from main.lua.
@@ -56,13 +58,23 @@ end
 ---Draw the display. Should only be called from main.lua.
 function Display.draw()
     Lg.push("all")
-    Lg.setScissor(Display.scrX, Display.scrY, Display.scrW, Display.scrH)
-    Lg.translate(Display.scrX, Display.scrY)
+    Lg.setCanvas(Display.canvas)
+    do
+        local r, g, b, a = Lg.getBackgroundColor()
+        if a > 0 then
+            Lg.clear(r, g, b, a)
+        end
+    end
     Sceneman.draw()
     Lg.pop()
 
+    -- shell
     Lg.setColor(1, 1, 1)
     Lg.draw(res.shellImg, 0, 0)
+
+    -- display
+    Lg.setColor(1, 1, 1)
+    Lg.draw(Display.canvas, Display.scrX, Display.scrY)
 
     -- draw lives counter
     for i=1, 4 do
