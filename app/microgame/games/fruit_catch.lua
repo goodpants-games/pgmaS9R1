@@ -55,14 +55,20 @@ function Game:new(mgr)
     self.sprFruit = Sprite.new(self:getRes("fruit.json"))
     self:releaseOnUnload(self.sprFruit)
 
-    self.music = self.manager:newAudioSource("/res/music/CLASS11.MOD", "stream")
+    self.music = self.manager:newAudioSource(self:getRes("music.ogg"), "stream")
     self:releaseOnUnload(self.music)
-    -- self.music:play()
+    self.music:setVolume(0.4)
+    self.music:setPitch(mgr:getTempoScale())
+    self.music:play()
 
     self.sndCatch = mgr:newAudioSource(self:getRes("catch.wav"), "static")
     self:releaseOnUnload(self.sndCatch)
     self.sndMove = mgr:newAudioSource(self:getRes("move.wav"), "static")
     self:releaseOnUnload(self.sndMove)
+    self.sndDie = mgr:newAudioSource(self:getRes("die.wav"), "static")
+    self:releaseOnUnload(self.sndDie)
+    self.sndSad = mgr:newAudioSource(self:getRes("sad.wav"), "static")
+    self:releaseOnUnload(self.sndSad)
 end
 
 function Game:tick()
@@ -83,6 +89,8 @@ function Game:tick()
         elseif dx > 0 then
             self.basketX = math.min(self.basketX + PLAYER_MOVE_SPEED, targetX)
         end
+    else
+        self.music:setPitch(self.music:getPitch() * 0.995)
     end
 
     -- spawn next fruit...
@@ -119,6 +127,8 @@ function Game:tick()
                     self.sprTeetoe.cel = 3
                     self.playerFailed = true
                     self.win = false
+                    self.sndDie:stop()
+                    self.sndDie:play()  
                 else
                     self.sndCatch:stop()
                     self.sndCatch:setPitch(self.sndCatch:getPitch() + 0.2)
@@ -134,6 +144,8 @@ function Game:tick()
                 self.win = false
                 self.playerFailed = true
                 self.sprTeetoe.cel = 2
+                self.sndSad:stop()
+                self.sndSad:play()
             end
         end
     end
