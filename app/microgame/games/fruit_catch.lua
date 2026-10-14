@@ -2,7 +2,7 @@ local GameBase = require("microgame.base")
 local GameConf = require("microgame.conf")
 local Sprite = require("sprite")
 
-local PLAYER_MOVE_SPEED = 100
+local PLAYER_MOVE_SPEED = 9999
 local POSITION_GRID_COUNT = 5
 local POSITION_GRID_SPACING = 30
 
@@ -34,10 +34,15 @@ function Game:new(mgr)
     self.basketXv = 0.0
 
     self.fruits = {}
-    self.nextFruitTicker = 15
-    self.lastFruitSpawnX = self.playerGridPos
+    self.nextFruitTicker = 0 + self.manager.speed * 3
+    ---@type number?
+    self.lastFruitSpawnX = nil
     self.nextFruitIndex = 1
     self.dangerFruitIndex = 0
+    ---@type number?
+    ---if an anvil spawns, ensure that the next fruit does not spawn in the
+    ---same place.
+    self.preventSpawnX = nil
     if mgr.difficulty > 0 then
         self.dangerFruitIndex = love.math.random(1, 4)
     end
@@ -52,7 +57,12 @@ function Game:new(mgr)
 
     self.music = self.manager:newAudioSource("/res/music/CLASS11.MOD", "stream")
     self:releaseOnUnload(self.music)
-    self.music:play()
+    -- self.music:play()
+
+    self.sndCatch = mgr:newAudioSource(self:getRes("catch.wav"), "static")
+    self:releaseOnUnload(self.sndCatch)
+    self.sndMove = mgr:newAudioSource(self:getRes("move.wav"), "static")
+    self:releaseOnUnload(self.sndMove)
 end
 
 function Game:tick()
@@ -60,6 +70,9 @@ function Game:tick()
     if not self.playerFailed then
         if self.manager:isButtonPressed() then
             self.playerGridPos = (self.playerGridPos + 1) % POSITION_GRID_COUNT
+            self.sndMove:stop()
+            self.sndMove:setPitch((love.math.random()*2-1) * 0.05 + 1.0)
+            self.sndMove:play()
         end
 
         local targetX = self:_gridToScreen(self.playerGridPos)
@@ -74,8 +87,13 @@ function Game:tick()
 
     -- spawn next fruit...
     if self.nextFruitTicker == 0 then
-        self.nextFruitTicker = 40
+        -- 40 32 24
+        -- 32 28 24
+        self.nextFruitTicker = 32 - self.manager.speed * 4
         self:_newFruit()
+        -- if fruit.isDanger and self.manager.speed < 2 then
+        --     self:_newFruit(1)
+        -- end
     else
         if not self.playerFailed then
             self.nextFruitTicker = self.nextFruitTicker - 1
@@ -101,6 +119,10 @@ function Game:tick()
                     self.sprTeetoe.cel = 3
                     self.playerFailed = true
                     self.win = false
+                else
+                    self.sndCatch:stop()
+                    self.sndCatch:setPitch(self.sndCatch:getPitch() + 0.2)
+                    self.sndCatch:play()
                 end
             end
         end
@@ -139,16 +161,38 @@ function Game:draw()
     self.sprTeetoe:draw(self.basketX, self.basketY + self.basketH)
 end
 
-function Game:_newFruit()
-    local isDanger = self.nextFruitIndex == self.dangerFruitIndex
-    local maxDist = 4 - self.manager.speed
-    local gridX = (self.lastFruitSpawnX + love.math.random(0, maxDist)) % POSITION_GRID_COUNT
-    local yv = 2 + self.manager.speed
-    if isDanger then
-        yv = yv * 1.25
+---@param minDist number?
+---@return table
+function Game:_newFruit(minDist)
+    minDist = minDist or 0
+    if self.lastFruitSpawnX == nil then
+        self.lastFruitSpawnX = self.playerGridPos
     end
 
-    self.lastFruitSpawnX = gridX
+    local isDanger = self.nextFruitIndex == self.dangerFruitIndex
+    local maxDist = ({3,3,2})[self.manager.speed + 1]
+    local gridX
+    for i=1, 100 do
+        gridX = (self.lastFruitSpawnX + love.math.random(minDist, maxDist)) % POSITION_GRID_COUNT
+        if gridX ~= self.preventSpawnX then
+            break
+        end
+        if i == 100 then
+            print("something very bad happened")
+        end
+    end
+    self.preventSpawnX = nil
+
+    local yv = 2 + self.manager.speed * 0.6
+    if isDanger then
+        yv = yv + 0.5
+        -- make it so it's easier for the player to catch the next fruit if they
+        -- need to dodge the anvil
+        self.lastFruitSpawnX = nil
+        self.preventSpawnX = gridX
+    else
+        self.lastFruitSpawnX = gridX
+    end
 
     local obj = {
         x = self:_gridToScreen(gridX),
