@@ -37,11 +37,11 @@ local SPEED_UP_POINTS = {
 }
 local SHOP_POINTS = {
     -- level 1
-    { 8, 14 },
+    { 4, 8, 14 },
     -- level 2
     { 1, 6, 12 },
     -- level 3
-    { 1, 10 }
+    { 1, 8, 14 }
 }
 
 if false then
