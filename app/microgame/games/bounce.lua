@@ -45,7 +45,7 @@ function Game:new(mgr)
     self.ballR = 8.0
     self.ballSquash = 0.0
     self.ballSquashVel = 0.0
-    self.ballG = 0.04 * (self.manager.speed * 0.5 + 1)
+    self.ballG = 0.04 * (self.manager.speed * 0.3 + 1)
 
     self.startTimer = 1
     self.win = true
