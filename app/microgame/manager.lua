@@ -208,12 +208,16 @@ end
 
 function GameManager:draw()
     if self.game then
+        Lg.push("all")
+
         -- draw background
         Lg.setColor(self.game.backgroundColor)
         Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
         -- draw game
         Lg.setColor(1, 1, 1)
         self.game:draw()
+        
+        Lg.pop()
     end
 end
 

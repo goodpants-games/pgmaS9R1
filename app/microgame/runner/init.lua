@@ -3,6 +3,7 @@ local GameManager = require("microgame.manager")
 local FontRes = require("fontres")
 local Sprite = require("sprite")
 local Input = require("input")
+local Display = require("display")
 
 local GAME_SET = {
     "ssi_swing",
@@ -112,8 +113,6 @@ function Runner:new(params)
 
     ---@type {[string]:any}
     self.res = {}
-    self.res.lifeSpr = Sprite.new("/res/sprites/hearts.json")
-    self.res.lifeSpr.alignment = "topleft"
 
     self.res.bombSpr = Sprite.new("/res/sprites/bomb_timer.json")
     self.res.bombSpr.alignment = "topleft"
@@ -122,7 +121,6 @@ function Runner:new(params)
     self.res.bombFuseRopeImg:setWrap("repeat", "repeat")
     
     self.res.bombFuseFlameSpr = Sprite.new("/res/sprites/bomb_timer_fuse.json")
-    self.res.shellImg = Lg.newImage("res/sprites/arcade_bars.png")
     self.res.bombFuseRopeQuad = Lg.newQuad(0,0, 0,0, 1,1)
 
     self.res.itemsSpr = Sprite.new("/res/sprites/items.json")
@@ -213,46 +211,27 @@ end
 
 function Runner:draw()
     self.state:draw()
-
-    Lg.setColor(1, 1, 1)
-    Lg.draw(self.res.shellImg, 0, 0)
     
-    -- draw lives counter
+    -- update life display
     for i=1, 4 do
-        local x = 1
-        local y = 10 + (i-1) * 25
-        local c = 1
+        local color = "off"
         if i <= self.lives then
-            c = 2
+            color = "red"
             if i > self.lives - self.lifeShields then
-                c = 3
+                color = "blue"
             end
         end
 
-        Lg.setColor(1, 1, 1)
-        self.res.lifeSpr:drawCel(c, x, y)
+        Display.heartLeds[i] = color
     end
 
     -- draw items
-    local itemsSpr = self.res.itemsSpr --[[@as pklove.Sprite]]
-    local drawOx = UI_ITEM_SLOT_WIDTH / 2
-    local drawOy = UI_ITEM_SLOT_HEIGHT / 2
     for i=1, #self.items do
         local item = self.items[i]
-        local drawPos = UI_ITEM_SLOT_POSITIONS[i]
 
         local imgName = item.id or "nil"
-        Lg.setColor(1, 1, 1)
-        itemsSpr:play(imgName)
-        itemsSpr:draw(math.round(drawPos.x + drawOx), math.round(drawPos.y + drawOy))
+        Display.items[i] = imgName
     end
-
-    -- draw bomb
-    -- Lg.setScissor(0, 0, self.scrX, App.scrH)
-    -- Lg.setColor(1, 1, 1)
-    -- self.res.bombSpr:drawCel(1, 2, 153)
-    -- self.res.bombSpr:drawCel(2, 2, 153)
-    -- Lg.setScissor()
 end
 
 function Runner:getTickSpeed()
@@ -573,10 +552,6 @@ end
 
 function EnterGameState:draw()
     local runner = self.runner
-    local scrX, scrY = runner.scrX, runner.scrY
-
-    Lg.push()
-    Lg.translate(scrX, scrY)
 
     Lg.setColor(0, 0, 0)
     Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
@@ -593,8 +568,6 @@ function EnterGameState:draw()
     end
     
     Lg.print(txt, 10, 30)
-
-    Lg.pop()
 end
 
 --------------------------------------------------------------------------------
@@ -674,23 +647,14 @@ function PlayState:draw()
     local runner = self.runner
     local gameMgr = runner.gameManager
 
-    local scrX, scrY = runner.scrX, runner.scrY
-
-    Lg.push("all")
-
-    -- set up draw bounds
-    Lg.translate(scrX, scrY)
-    Lg.intersectScissor(scrX, scrY, GameConf.scrW, GameConf.scrH)
     -- draw game
     runner.gameManager:draw()
-
-    Lg.pop()
 
     -- draw verb text
     if self.verbTextTimer > 0.0 then
         local textW, textH = runner.verbText:getDimensions()
-        local drawX = scrX + (GameConf.scrW - textW) / 2
-        local drawY = scrY + (GameConf.scrH - textH) / 2
+        local drawX = (GameConf.scrW - textW) / 2
+        local drawY = (GameConf.scrH - textH) / 2
 
         Lg.setColor(0, 0, 0, 0.5)
         Lg.draw(runner.verbText, drawX + 2, drawY + 2)
@@ -700,7 +664,7 @@ function PlayState:draw()
     end
 
     -- timer bar
-    local bombDrawX = 32
+    local bombDrawX = 3
     local bombSpr = runner.res.bombSpr --[[@as pklove.Sprite]]
     
     Lg.setColor(0, 0, 0, 0.5)
@@ -711,7 +675,7 @@ function PlayState:draw()
     bombDrawX = bombDrawX + 29
     if true then
         local progress = gameMgr.timer / gameMgr.gameLength
-        local barWidth = (GameConf.scrW - bombDrawX + 30 - 6) * progress
+        local barWidth = ((GameConf.scrW - 8) - bombDrawX) * progress
 
         ---@type love.Quad
         local q = runner.res.bombFuseRopeQuad
@@ -947,8 +911,6 @@ function ItemSelectState:draw()
     local cy = GameConf.scrH / 2
     local uiBase = cy + 12
 
-    Lg.push()
-    Lg.translate(scrX, scrY)
     Lg.setFont(FontRes.monogram)
 
     Lg.setColor(1, 1, 1)
@@ -1002,8 +964,6 @@ function ItemSelectState:draw()
         Lg.setColor(1, 0, 0)
         Lg.rectangle("fill", 0, counterY, GameConf.scrW, 2)
     end
-
-    Lg.pop()
 end
 
 function ItemSelectState:_drawConfirmTimer(y)

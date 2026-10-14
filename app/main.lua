@@ -2,6 +2,7 @@ require("conf2")
 
 local fontres = require("fontres")
 local Input = require("input")
+local Display = require("display")
 
 App.mousex = 0
 App.mousey = 0
@@ -97,6 +98,8 @@ function love.load(args)
     Input.init()
 
     Lg.setFont(fontres.monogram)
+
+    Display.init()
 	
     -- if there is at least one key in initParams...
     if next(initParams) then
@@ -197,6 +200,7 @@ function love.update(dt)
         
         Jprof.push("tick")
         Sceneman.dispatch("tick")
+        Display.tick()
         did_tick = true
         Jprof.pop("tick")
 
@@ -228,7 +232,7 @@ function love.draw()
         local bg_r, bg_g, bg_b, bg_a = Lg.getBackgroundColor()
         Lg.clear(bg_r, bg_g, bg_b, bg_a)
 
-        Sceneman.draw()
+        Display.draw()
         Debug.draw:flush()
 
         Lg.setCanvas()

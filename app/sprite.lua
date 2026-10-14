@@ -263,7 +263,7 @@ module.defaultSpriteAlignment = nil
 ---@field _refs {[pklove.Sprite]: boolean}
 ---@field atlas love.Image
 ---@field cels {quad: love.Quad, cx: number, cy: number, ox: number, oy: number, duration: number}[]
----@field animations {from: integer, to: integer, loopCount: integer, loopPoint: integer}[]
+---@field animations {[string]:{from: integer, to: integer, loopCount: integer, loopPoint: integer}}
 ---@field alignment pklove.SpriteAlignment?
 local SpriteResource = {}
 SpriteResource.__index = SpriteResource
