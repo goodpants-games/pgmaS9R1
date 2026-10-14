@@ -547,13 +547,13 @@ function Player:tick(game)
     if self.isCharging then
         local stopCharge = false
 
-        if self.charge >= 10 then
+        if self.charge >= 12 then
             self.yv = -3.8
             self.isDoingChargeJump = true
             game.res.sndSuperJump:stop()
             game.res.sndSuperJump:play()
             stopCharge = true
-        elseif self.charge >= 8 and not game.manager:isButtonDown() then
+        elseif self.charge >= 4 and not game.manager:isButtonDown() then
             self.yv = -3
             game.res.sndJump:stop()
             game.res.sndJump:play()
