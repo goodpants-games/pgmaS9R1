@@ -21,7 +21,7 @@ function Game:new(mgr)
     self:super(mgr)
     self.verb = "Pluck!"
     self.win = false
-    self.backgroundColor = { 0.1, 0.4, 1.0 }
+    self.backgroundColor = { batteries.colour.unpack_rgb(0x7570ff) }
     mgr:setGameLength(GameConf.refGameLength - mgr.speed)
 
     self.flowerX = math.round(GameConf.scrW / 2)
@@ -109,7 +109,7 @@ function Game:draw()
     end
 
     -- draw pistil
-    Lg.setColor(batteries.colour.unpack_rgb(0xffc561))
+    Lg.setColor(batteries.colour.unpack_rgb(0xffc18f))
     Lg.circle("fill", self.flowerX, self.flowerY, self.flowerR)
 
     if self.heartIsBroken then
