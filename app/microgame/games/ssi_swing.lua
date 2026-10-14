@@ -155,6 +155,10 @@ function Game:tick()
         local dx = 50 - self.octoX
         self.octoVx = self.octoVx + dx * 0.01 - self.octoVx * 0.08
 
+        if not self.octoSpr.curAnim then
+            self.octoSpr:play("idle")
+        end
+
         self.octoTicker = self.octoTicker - 1
         if self.octoTicker == 0 then
             self.octoStage = "windup"
@@ -196,14 +200,27 @@ function Game:draw()
     Lg.setColor(1, 1, 1)
     self.robotSpr:draw(16 + math.round(self.plrOx) * 2, self.yBase - 28, 0, 2, 2)
 
-    -- draw octopus
     local octoX = math.round(self.octoX) * 2
     local octoY = math.round(self.octoY) * 2
+
+    -- draw octopus shadow
     Lg.setColor(1, 1, 1, 0.8)
     Lg.draw(self.shadowImg, octoX - 16, self.yBase - 8, 0, 2, 2)
 
+    -- draw octopus
     Lg.setColor(1, 1, 1)
     self.octoSpr:draw(octoX, self.yBase - octoY - 26, 0, 2, 2)
+
+    -- flash octopus at the time the player should start the swing
+    Lg.setColor(1, 1, 1, 0.8)
+    if self.octoStage == "windup" and self.octoTicker <= 12 then
+        if self.octoTicker % 6 < 3 and self.octoSpr.curAnim then
+            local flashAnim = self.octoSpr.res.animations["flash"]
+            local cel = flashAnim.from + self.octoSpr:getAnimFrame() - 1
+
+            self.octoSpr:drawCel(cel, octoX, self.yBase - octoY - 26, 0, 2, 2)
+        end
+    end
 end
 
 return Game
