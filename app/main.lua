@@ -105,7 +105,7 @@ function love.load(args)
     if next(initParams) then
         Sceneman.switchScene("game_runner", initParams)
     else
-        Sceneman.switchScene("game_runner", {})
+        Sceneman.switchScene("self_test", {})
     end
 end
 

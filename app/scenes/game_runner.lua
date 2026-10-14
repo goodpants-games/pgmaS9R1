@@ -4,6 +4,7 @@ local scene = Sceneman.scene()
 local self
 
 function scene.load(data)
+    data = data or {}
     self = {}
     
     Lg.setBackgroundColor(0.5, 0.5, 0.5)
