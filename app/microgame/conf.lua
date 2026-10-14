@@ -1,7 +1,7 @@
 local GameConf = {}
 
-GameConf.scrW = App.scrH
-GameConf.scrH = App.scrH
+GameConf.scrW = Display.scrW
+GameConf.scrH = Display.scrH
 
 -- reference game length, in beats
 GameConf.refGameLength = 8

@@ -4,8 +4,6 @@ local FontRes = require("fontres")
 local Sprite = require("sprite")
 local Input = require("input")
 
-Display = require("display")
-
 local GAME_SET = {
     "ssi_swing",
     "bounce",

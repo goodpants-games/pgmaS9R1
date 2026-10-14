@@ -2,7 +2,7 @@ require("conf2")
 
 local fontres = require("fontres")
 local Input = require("input")
-local Display = require("display")
+Display = require("display")
 
 App.mousex = 0
 App.mousey = 0
