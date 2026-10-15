@@ -43,8 +43,8 @@ function scene.load(data)
     self.leaderboard_wrap_limit = 100
     self.leaderboard_texts = {
         "40 - DNGAR",
-        "39 - <Unsure>",
-        "31 - CHIBR",
+        "39 - LAYRA",
+        "31 - UNYU",
         "28 - NIC",
         "23 - GUINO",
         "22 - PIC",
