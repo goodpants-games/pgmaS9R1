@@ -96,6 +96,7 @@ function Runner:new(params)
     self.res.itemsSpr.alignment = "center"
 
     self.res.imgBgBlackGradient = Lg.newImage("/res/img/bg_black_gradient.png")
+    self.res.beetleFaceSpr = Sprite.new("/res/sprites/firebeetle_face.json")
     
     ---@type microgame.Runner.State
     self.state = nil

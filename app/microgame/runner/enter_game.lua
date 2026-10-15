@@ -12,6 +12,8 @@ function EnterGameState:new(runner)
     self.time = 0
     self.state = 1
     self.stateTimer = 0
+    self.displayLength = 60 - runner.gameManager.speed * 15
+    self.effectAnimSpeed = 3 * (1 + runner.gameManager.speed * 0.25)
 
     -- control parameters for the seizure pattern
     self.patternStart = 1
@@ -43,25 +45,28 @@ function EnterGameState:tick()
     local runner = self.runner
 
     if self.state == 1 then
-        if self.patternStart < 105 then
-            self.patternStart = self.patternStart + 4
-        elseif self.patternEnd < 40 then
-            self.patternEnd = self.patternEnd + 4
+        local START_MAX = 105
+        local END_MAX = 50
+
+        if self.patternStart < START_MAX then
+            self.patternStart = math.round(math.min(START_MAX, self.patternStart + self.effectAnimSpeed))
+        elseif self.patternEnd < END_MAX then
+            self.patternEnd = math.round(math.min(END_MAX, self.patternEnd + self.effectAnimSpeed))
         else
             self.state = 2
         end
     
     elseif self.state == 2 then
         self.stateTimer = self.stateTimer + 1
-        if self.stateTimer == 30 then
+        if self.stateTimer == self.displayLength * 2 then
             self.state = 3
         end
     
     elseif self.state == 3 then
         if self.patternEnd > 1 then
-            self.patternEnd = math.max(self.patternEnd - 4, 1)
+            self.patternEnd = math.round(math.max(self.patternEnd - self.effectAnimSpeed, 1))
         elseif self.patternStart > 1 then
-            self.patternStart = math.max(self.patternStart - 4, 1)
+            self.patternStart = math.round(math.max(self.patternStart - self.effectAnimSpeed, 1))
         else
             self.runner:_switchState("play")
         end
@@ -77,26 +82,51 @@ function EnterGameState:draw()
     local cx = math.round(Display.scrW / 2)
     local cy = math.round(Display.scrH / 2)
     local hsvToRgb = batteries.colour.hsv_to_rgb
+    local beetleFaceSpr = runner.res.beetleFaceSpr
 
     if self.patternEnd > 1 then
-        local oldFont = Lg.getFont()
+        -- beetle win/lose sprites
+        if self.stateTimer < self.displayLength then
+            Lg.setColor(1, 1, 1)
+            local sprCel = 1
+            if runner.lostGame then
+                sprCel = 2
+            end
+            for i=0, 12 do
+                local x = cx + i * 30 - (self.time%30) - 30
+                local yBase = cy + math.sin((self.time/10 + i/6) * (math.pi/2)) * 6
+                beetleFaceSpr:drawCel(sprCel, x, yBase)
+                -- beetleFaceSpr:drawCel(sprCel, x, yBase + 34)
+            end
+        else
+            local oldFont = Lg.getFont()
 
-        Lg.setFont(FontRes.chunkyNumerals)
-        Lg.setColor(1, 1, 1)
-        local textW = FontRes.chunkyNumerals:getWidth("00")
-        local textH = FontRes.chunkyNumerals:getHeight()
+            Lg.setFont(FontRes.chunkyNumerals)
+            local textW = FontRes.chunkyNumerals:getWidth("00") - 1
+            local textH = FontRes.chunkyNumerals:getHeight()
+            local textX = cx - textW * 2
+            local textY = cy - textH * 2
 
-        local str = ("%02d"):format(runner.gamesCompleted+1)
-        Lg.print(str, cx - textW*2, cy - textH*2, 0, 4, 4)
+            local str = ("%02d"):format(runner.gamesCompleted+1)
 
-        Lg.setFont(oldFont)
+            Lg.setColor(0, 0, 0.7)
+            Lg.print(str, textX + 2, textY + 2, 0, 4, 4)
+            Lg.setColor(1, 1, 1)
+            Lg.print(str, textX, textY, 0, 4, 4)
+
+            Lg.setFont(FontRes.bold)
+            Lg.setColor(1, 1, 1)
+            Lg.printf("SPEED\nUP!", cx - 40, textY, 40, "center", 0, 3, 3)
+
+            Lg.setFont(oldFont)
+        end
     end
 
     for i=self.patternStart, self.patternEnd, -1 do
         local w = 5 + (i-1) * 2
         local h = 5 + (i-1) * 2
-        local x = math.round(cx - w/2) + 0.5
-        local y = math.round(cy - h/2) + 0.5
+        local x = math.round(cx - w/2) - 0.5
+        local y = math.round(cy - h/2) - 0.5
 
         local r, g, b
         if false and ((i-1) - self.time/2)%6 == 0 then
