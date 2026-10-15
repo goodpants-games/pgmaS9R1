@@ -15,39 +15,9 @@ local GAME_SET = {
     "bow",
 }
 
-local BOSS_ROUND_INTERVAL = 20
-local MAX_LIVES = 4
-local UI_ITEM_SLOT_POSITIONS = {
-    { x = 218, y = 13 },
-    { x = 218, y = 38 },
-    { x = 218, y = 63 },
-}
-local UI_ITEM_SLOT_WIDTH = 18
-local UI_ITEM_SLOT_HEIGHT = 12
-
-local SPEED_UP_POINTS = {
-    -- level 1
-    { 8, 14 },
-    -- level 2
-    { 6, 12 },
-    -- level 3
-    { 4, 8 }
-}
-local SHOP_POINTS = {
-    -- level 1
-    { 4, 8, 14 },
-    -- level 2
-    { 1, 6, 12 },
-    -- level 3
-    { 1, 8, 14 }
-}
-
-if false then
-    print("INSERT DEBUG SPEED UP POINTS")
-    for i=1, 3 do
-        table.insert(SPEED_UP_POINTS, 1, { 2, 5 })
-    end
-end
+local MAX_LIVES = GameConf.maxLives
+local SPEED_UP_POINTS = GameConf.speedUpPoints
+local SHOP_POINTS = GameConf.shopPoints
 
 ---@class microgame.Runner: batteries.Class
 ---@overload fun(params:table):microgame.Runner
@@ -506,68 +476,8 @@ end
 --------------------------------------------------------------------------------
 --- STATE: enterGame
 --------------------------------------------------------------------------------
----@class microgame.Runner.EnterGameState: microgame.Runner.State
-local EnterGameState = batteries.class {
-    name = "microgame.Runner.EnterGameState"
-}
-runStates.enterGame = EnterGameState
+runStates.enterGame = require("microgame.runner.enter_game")
 
----@param runner microgame.Runner
-function EnterGameState:new(runner)
-    self.runner = runner
-    self.time = 0
-    
-    self.bossRound = runner.round % BOSS_ROUND_INTERVAL == 0
-
-    local gameMgr = runner.gameManager
-    local levelData = SPEED_UP_POINTS[gameMgr.difficulty + 1]
-
-    self.speedUp = table.index_of(levelData, runner.round) ~= nil
-
-    if self.speedUp then
-        gameMgr.speed = gameMgr.speed + 1
-    end
-
-    if self.bossRound then
-        gameMgr.speed = 0
-        gameMgr.difficulty = gameMgr.difficulty + 1
-        runner.round = 0
-
-        if runner.lives < MAX_LIVES then
-            runner.lives = runner.lives + 1
-        end
-    end
-end
-
-function EnterGameState:tick()
-    local runner = self.runner
-
-    if self.time == 60 then
-        runner:_switchState("play")
-    end
-
-    self.time = self.time + 1
-end
-
-function EnterGameState:draw()
-    local runner = self.runner
-
-    Lg.setColor(0, 0, 0)
-    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
-
-    Lg.setColor(1, 1, 1)
-    Lg.print(tostring(runner.gamesCompleted + 1), 10, 10)
-
-    local txt = ""
-    if self.speedUp then
-        txt = txt .. "SPEED UP!"
-    end
-    if self.bossRound then
-        txt = txt .. "LEVEL UP!"
-    end
-    
-    Lg.print(txt, 10, 30)
-end
 
 --------------------------------------------------------------------------------
 --- STATE: play

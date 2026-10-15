@@ -73,6 +73,7 @@ end
 function love.load(args)
     love.keyboard.setTextInput(false)
 
+    local skipBoot = false
     local initParams = {}
     if Debug.enabled then
         local argi = 1
@@ -89,6 +90,9 @@ function love.load(args)
             elseif arg == "--speed" then
                 argi = argi + 1
                 initParams.speed = tonumber(args[argi])
+
+            elseif arg == "--skip-boot" then
+                skipBoot = true
             end
 
             argi = argi + 1
@@ -102,7 +106,7 @@ function love.load(args)
     Display.init()
 	
     -- if there is at least one key in initParams...
-    if next(initParams) then
+    if skipBoot or next(initParams) then
         Sceneman.switchScene("game_runner", initParams)
     else
         Sceneman.switchScene("self_test", {})
