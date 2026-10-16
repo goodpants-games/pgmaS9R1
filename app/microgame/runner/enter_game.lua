@@ -244,7 +244,11 @@ function EnterGameState:draw()
         end
         
         Lg.setColor(r * maskR, g * maskG, b * maskB)
-        Lg.rectangle(i == 1 and "fill" or "line", x, y, w, h)
+        if i == 1 then
+            Lg.rectangle("fill", x, y, w+1, h+1)
+        else
+            Lg.rectangle("line", x, y, w, h)
+        end
     end
 
     --[[

@@ -225,7 +225,7 @@
 local JSON = require("json")
 
 local module = {}
-module._version = "0.2.0"
+module._version = "0.2.1"
 
 ---@alias pklove.SpriteAlignment "topleft"|"center"
 
@@ -258,6 +258,11 @@ module.defaultResourceAlignment = nil
 ---resource on a per-draw basis.
 ---@type pklove.SpriteAlignment?
 module.defaultSpriteAlignment = nil
+
+---If this is a positive non-zero number, the position of rendered sprite cels
+---are rounded to a grid of this resolution, in pixels.
+---@type number
+module.pixelSnapping = 1
 
 ---@class pklove.SpriteResource
 ---@field _refs {[pklove.Sprite]: boolean}
@@ -320,6 +325,13 @@ local function pathNormalize(path)
     else
         return table.concat(stack, "/")
     end
+end
+
+local function round(n)
+    if n < 0 then
+		return math.ceil(n - 0.5)
+	end
+	return math.floor(n + 0.5)
 end
 
 ---Load an Aseprite export from preloaded data.
@@ -660,6 +672,14 @@ function Sprite:drawCel(index, x, y, r, sx, sy, ox, oy, kx, ky)
         ox, oy = ox + cel.cx, oy + cel.cy
     else
         error(("invalid sprite alignment '%s'. expected: 'center', 'topleft"):format(tostring(align)))
+    end
+
+    local pixelSnapping = module.pixelSnapping
+    if pixelSnapping > 0 then
+        ox = round(ox / pixelSnapping) * pixelSnapping
+        oy = round(oy / pixelSnapping) * pixelSnapping
+        x = round(x / pixelSnapping) * pixelSnapping
+        y = round(y / pixelSnapping) * pixelSnapping
     end
 
     love.graphics.draw(self.res.atlas, cel.quad, x, y, r, sx, sy, ox, oy, kx, ky)
