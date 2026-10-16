@@ -7,26 +7,38 @@ local EnterGameState = batteries.class {
 }
 
 ---@param runner microgame.Runner
-function EnterGameState:new(runner)
+function EnterGameState:new(runner, data)
+    data = data or {}
+
+    local speed = runner.gameManager.speed
+    if data.gameOver then
+        speed = 0
+    end
+
     self.runner = runner
     self.time = 0
     self.state = 1
     self.stateTimer = 0
-    self.displayLength = 60 - runner.gameManager.speed * 15
-    self.effectAnimSpeed = 3 * (1 + runner.gameManager.speed * 0.25)
+    self.displayLength = 60 - speed * 15
+    self.effectAnimSpeed = 3 * (1 + speed * 0.25)
     self.strobeColorMask = { 1, 1, 1 }
     self.interpStrobeColorMask = { 1, 1, 1 }
 
     -- control parameters for the seizure pattern
     self.patternStart = 1
     self.patternEnd = 1
-    
-    self.bossRound = runner.round % GameConf.bossRoundInterval == 0
 
+    self.bossRound = false
+    self.speedUp = false
+    self.gameOver = not not data.gameOver -- force coercion to bool
     local gameMgr = runner.gameManager
-    local levelData = GameConf.speedUpPoints[gameMgr.difficulty + 1]
+    
+    if not self.gameOver then
+        local levelData = GameConf.speedUpPoints[gameMgr.difficulty + 1]
 
-    self.speedUp = table.index_of(levelData, runner.round) ~= nil
+        self.bossRound = runner.round % GameConf.bossRoundInterval == 0
+        self.speedUp = table.index_of(levelData, runner.round) ~= nil
+    end
 
     if self.speedUp then
         gameMgr.speed = gameMgr.speed + 1
@@ -98,6 +110,9 @@ function EnterGameState:tick()
         if self.bossRound or self.speedUp then
             stages = 3
         end
+        if self.gameOver then
+            stages = 4
+        end
 
         if self.stateTimer == self.displayLength * stages then
             self.state = 3
@@ -116,6 +131,8 @@ function EnterGameState:tick()
             self.patternEnd = math.round(math.max(self.patternEnd - self.effectAnimSpeed, 1))
         elseif self.patternStart > 1 then
             self.patternStart = math.round(math.max(self.patternStart - self.effectAnimSpeed, 1))
+        elseif self.gameOver then
+            self.runner:_switchState("game_end", runner.gamesCompleted)
         else
             self.runner:_switchState("play")
         end
@@ -133,7 +150,7 @@ function EnterGameState:draw()
     local hsvToRgb = batteries.colour.hsv_to_rgb
     local beetleFaceSpr = runner.res.beetleFaceSpr
 
-    if self.patternEnd > 1 and self.state < 3 then
+    if self.patternEnd > 1 then
         -- beetle win/lose sprites
         if self.stateTimer < self.displayLength then
             Lg.setColor(1, 1, 1)
@@ -147,6 +164,23 @@ function EnterGameState:draw()
                 beetleFaceSpr:drawCel(sprCel, x, yBase)
                 -- beetleFaceSpr:drawCel(sprCel, x, yBase + 34)
             end
+        elseif self.gameOver then
+            local oldFont = Lg.getFont()
+
+            Lg.setFont(FontRes.bold)
+            local textH = FontRes.bold:getHeight() * 2
+            local textX = cx - 40*3/2 + 1
+            local textY = cy - textH * 3/2
+
+            local text = "GAME\nOVER!"
+
+            Lg.setColor(0, 0, 0.7)
+            Lg.printf(text, textX + 2, textY + 2, 40, "center", 0, 3, 3)
+            
+            Lg.setColor(0.8, 0, 0)
+            Lg.printf(text, textX, textY, 40, "center", 0, 3, 3)
+
+            Lg.setFont(oldFont)
         elseif (self.speedUp or self.bossRound) and self.stateTimer < self.displayLength * 2 then
             local oldFont = Lg.getFont()
 
@@ -189,6 +223,8 @@ function EnterGameState:draw()
             Lg.print(str, textX + 2, textY + 2, 0, 4, 4)
             Lg.setColor(1, 1, 1)
             Lg.print(str, textX, textY, 0, 4, 4)
+
+            Lg.setFont(oldFont)
         end
     end
 

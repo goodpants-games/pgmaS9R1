@@ -304,8 +304,7 @@ function Runner:_useItem(idx)
 end
 
 ---@param self microgame.Runner
----@param ... any
-local function nextRoundCallback(self, ...)
+local function nextRoundCallback(self)
     self.canUseItems = false
     self.round = self.round + 1
 
@@ -317,9 +316,11 @@ local function nextRoundCallback(self, ...)
             self.lives = self.lives - 1
         end
 
-        -- restart game when out of lives
+        -- game over :(
         if self.lives == 0 and not Debug.enabled then
-            Sceneman.switchScene("game_runner", {})
+            return runStates.enterGame(self, {
+                gameOver = true
+            })
         end
     end
 
@@ -329,9 +330,9 @@ local function nextRoundCallback(self, ...)
     local enterShop = table.index_of(levelData, self.round) ~= nil
 
     if enterShop then
-        return runStates.itemSelect(self, ...)
+        return runStates.itemSelect(self)
     else
-        return runStates.enterGame(self, ...)
+        return runStates.enterGame(self)
     end
 end
 
@@ -386,6 +387,11 @@ function Runner:_debugCommand()
 
         if args[1] == "set_level" then
             self.gameManager.difficulty = tonumber(args[2])--[[@as integer]]
+            goto continue
+        end
+
+        if args[1] == "set_lives" then
+            self.lives = math.clamp(tonumber(args[2])--[[@as integer]], 0, 4)
             goto continue
         end
 
