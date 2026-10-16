@@ -46,7 +46,7 @@ function EnterGameState:new(runner, data)
 
     if self.bossRound then
         gameMgr.speed = 0
-        gameMgr.difficulty = gameMgr.difficulty + 1
+        gameMgr.difficulty = math.min(gameMgr.difficulty + 1, 2)
         runner.round = 0
 
         if runner.lives < GameConf.maxLives then
