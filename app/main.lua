@@ -74,6 +74,7 @@ function love.load(args)
     love.keyboard.setTextInput(false)
 
     local skipBoot = false
+    local goToGameEnd = false
     local initParams = {}
     if Debug.enabled then
         local argi = 1
@@ -93,6 +94,9 @@ function love.load(args)
 
             elseif arg == "--skip-boot" then
                 skipBoot = true
+
+            elseif arg == "--game-end" then
+                goToGameEnd = true
             end
 
             argi = argi + 1
@@ -105,8 +109,10 @@ function love.load(args)
 
     Display.init()
 	
+    if goToGameEnd then
+        Sceneman.switchScene("game_end", 15)
     -- if there is at least one key in initParams...
-    if skipBoot or next(initParams) then
+    elseif skipBoot or next(initParams) then
         Sceneman.switchScene("game_runner", initParams)
     else
         Sceneman.switchScene("self_test", {})

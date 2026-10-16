@@ -132,7 +132,7 @@ function EnterGameState:tick()
         elseif self.patternStart > 1 then
             self.patternStart = math.round(math.max(self.patternStart - self.effectAnimSpeed, 1))
         elseif self.gameOver then
-            self.runner:_switchState("game_end", runner.gamesCompleted)
+            Sceneman.switchScene("game_end", runner.gamesCompleted)
         else
             self.runner:_switchState("play")
         end
