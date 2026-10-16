@@ -23,9 +23,10 @@ function scene.load(data)
     self.start_prompt = Lg.newText(fontres.monogram, self.start_prompt_txt)
     self.start_prompt_wrap_limit = 100
 
-    self.controls_prompt_txt = "CONTROLS: Space, A, S, D"
+    self.controls_prompt_txt = "CONTROLS: Space,A,S,D"
     self.controls_prompt = Lg.newText(fontres.monogram, self.start_prompt_txt)
     self.controls_prompt_wrap_limit = 180
+    self.img_title = Lg.newImage("res/sprites/title.png")
 
     self.leaderboard_wrap_limit = 100
     self.leaderboard_texts = {}
@@ -55,6 +56,11 @@ function scene.load(data)
 end
 
 function scene.unload()
+    self.start_prompt:release()
+    self.controls_prompt:release()
+    self.coin_insert_audio:release()
+    self.switch_audio:release()
+    self.img_title:release()
     self = nil
 end
 
@@ -98,6 +104,11 @@ function scene.tick()
 end
 
 function scene.draw()
+    -- draw game title
+    Lg.setColor(1, 1, 1)
+    Lg.draw(self.img_title, math.round((Display.scrW - self.img_title:getWidth()) / 2), 20)
+
+    -- other Stuff
     Lg.draw(self.start_prompt, Display.scrW/2 - self.start_prompt_wrap_limit/2, Display.scrH - 30)
     Lg.draw(self.controls_prompt, Display.scrW/2 - self.controls_prompt_wrap_limit/2, Display.scrH - 45)
 
