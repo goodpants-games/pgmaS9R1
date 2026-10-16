@@ -65,11 +65,6 @@ function scene.unload()
 end
 
 function scene.update(dt)
-    
-end
-
----@diagnostic disable-next-line
-function scene.tick()
     self.start_prompt:setf(self.start_prompt_txt, self.start_prompt_wrap_limit, "center")
     self.controls_prompt:setf(self.controls_prompt_txt, self.controls_prompt_wrap_limit, "center")
 
@@ -95,7 +90,7 @@ function scene.tick()
     end
 
     if self.started then
-        self.fade_transparency = self.fade_transparency + (3 * App.tickLength)
+        self.fade_transparency = self.fade_transparency + (3 * dt)
     end
 
     if self.fade_transparency >= 1 then

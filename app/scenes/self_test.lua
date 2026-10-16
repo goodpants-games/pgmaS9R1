@@ -20,12 +20,8 @@ function scene.unload()
     self = nil
 end
 
-function scene.update(dt)
+function scene.update()
     Sceneman.switchScene("title")
-end
-
----@diagnostic disable-next-line
-function scene.tick()
 end
 
 function scene.draw()

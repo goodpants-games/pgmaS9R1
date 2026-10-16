@@ -16,12 +16,12 @@ function scene.unload()
     self = nil
 end
 
-function scene.update(dt)
+---@diagnostic disable-next-line
+function scene.rawUpdate(dt)
     self.runner:update(dt)
 end
 
----@diagnostic disable-next-line
-function scene.tick()
+function scene.update()
     self.runner:tick()
 end
 

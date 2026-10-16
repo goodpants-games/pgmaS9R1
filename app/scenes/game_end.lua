@@ -51,7 +51,8 @@ function scene.unload()
     self = nil
 end
 
-function scene.update(dt)
+---@diagnostic disable-next-line
+function scene.rawUpdate(dt)
     for k in pairs(self.buttonsPressed) do
         if Input.players[1]:pressed(k) then
             self.buttonsPressed[k] = true
@@ -66,7 +67,7 @@ function scene.update(dt)
 end
 
 ---@diagnostic disable-next-line
-function scene.tick()
+function scene.update()
     local idev = Input.players[1]
 
     if self.wantExit and not idev:down("gameButton") then

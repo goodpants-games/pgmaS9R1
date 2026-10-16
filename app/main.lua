@@ -177,9 +177,9 @@ function love.update(dt)
     App.mousex = (love.mouse.getX() - display_ox) / display_scale
     App.mousey = (love.mouse.getY() - display_oy) / display_scale
 
-    Jprof.push("update")
-    Sceneman.update(dt)
-    Jprof.pop("update")
+    Jprof.push("raw update")
+    Sceneman.dispatch("rawUpdate", dt)
+    Jprof.pop("raw update")
 
     -- dt snap calculation
     -- https://medium.com/@tglaiel/how-to-make-your-game-run-at-60fps-24c61210fe75
@@ -209,7 +209,7 @@ function love.update(dt)
         end
         
         Jprof.push("tick")
-        Sceneman.dispatch("tick")
+        Sceneman.update(App.tickLength)
         Display.tick()
         did_tick = true
         Jprof.pop("tick")
