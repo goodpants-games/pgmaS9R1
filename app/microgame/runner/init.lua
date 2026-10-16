@@ -818,7 +818,7 @@ function ItemSelectState:tick()
             end
         end
 
-        runner:_switchState("enterGame")    
+        runner:_switchState("enterGame")
     end
 
     self.tickCnt = self.tickCnt + 1
