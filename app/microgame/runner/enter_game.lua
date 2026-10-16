@@ -133,7 +133,7 @@ function EnterGameState:draw()
     local hsvToRgb = batteries.colour.hsv_to_rgb
     local beetleFaceSpr = runner.res.beetleFaceSpr
 
-    if self.patternEnd > 1 then
+    if self.patternEnd > 1 and self.state < 3 then
         -- beetle win/lose sprites
         if self.stateTimer < self.displayLength then
             Lg.setColor(1, 1, 1)
@@ -204,7 +204,7 @@ function EnterGameState:draw()
             r,g,b = 0, 0, 0
         else
             local hue = ((i-1)%12 - self.time/4)/30
-            r,g,b = hsvToRgb(hue, 0.7, 0.9)
+            r,g,b = hsvToRgb(hue, 0.5, 0.9)
         end
         
         Lg.setColor(r * maskR, g * maskG, b * maskB)
