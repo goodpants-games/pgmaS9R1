@@ -21,7 +21,7 @@ build_win64() {
     echo "== WIN64 EXPORT =="
 
     rm -rf exports/win-x64
-    LOVE_WIN64_ZIP=$(mktemp --suffix=.zip)
+    LOVE_WIN64_ZIP=$(mktemp) # does this need to have a .zip suffix?
     curl -L "https://github.com/love2d/love/releases/download/11.5/${WIN64_BUILD_NAME}.zip" > $LOVE_WIN64_ZIP
     unzip $LOVE_WIN64_ZIP -d exports/
     rm $LOVE_WIN64_ZIP
