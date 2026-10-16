@@ -1,24 +1,11 @@
 -- TODO: title screen
 --[[
-- show leaderboards
 - funny strobing lights, ala Evil Egg
-- show "Insert Credit" text. the user presses SPACE to "insert a quarter".
-  turns into "Press SPACE to Start!" upon doing so.
-- also show controls: SPACE, A, S, and D.
-
-1.  DNGAR
-2.  <Unsure>
-3.  CHIBR
-4.  NIC
-5.  GUINO
-6.  PIC
-7.  GUAPO
-8.  FOFO
-9.  PINNY
-10. PROBS
 --]]
 
 local fontres = require("fontres")
+local Userdata = require("userdata")
+local Input = require("input")
 
 local scene = Sceneman.scene()
 local self
@@ -41,18 +28,13 @@ function scene.load(data)
     self.controls_prompt_wrap_limit = 180
 
     self.leaderboard_wrap_limit = 100
-    self.leaderboard_texts = {
-        "40 - DNGAR",
-        "39 - LAYRA",
-        "31 - UNYU",
-        "28 - NIC",
-        "23 - GUINO",
-        "22 - PIC",
-        "17 - GUAPO",
-        "14 - FOFO",
-        "10 - PINNY",
-        "09 - PROBS"
-    }
+    self.leaderboard_texts = {}
+    for i=1, Userdata.scoreboardCount do
+        local entry = Userdata.scoreboard[i]
+        self.leaderboard_texts[i] = ("%02d - %s"):format(
+            entry.score, entry.name
+        )
+    end
 
     for i, text in ipairs(self.leaderboard_texts) do
         local txt_obj = Lg.newText(fontres.quinque, text)
@@ -77,10 +59,15 @@ function scene.unload()
 end
 
 function scene.update(dt)
+    
+end
+
+---@diagnostic disable-next-line
+function scene.tick()
     self.start_prompt:setf(self.start_prompt_txt, self.start_prompt_wrap_limit, "center")
     self.controls_prompt:setf(self.controls_prompt_txt, self.controls_prompt_wrap_limit, "center")
 
-    if self.released_space and love.keyboard.isDown("space") then
+    if self.released_space and Input.players[1]:released("gameButton") then
         self.released_space = false
 
         if self.coin_inserted and not self.started then
@@ -89,7 +76,7 @@ function scene.update(dt)
             self.coin_inserted = true
             self.coin_insert_audio:play()
         end
-    elseif not love.keyboard.isDown("space") then
+    elseif not Input.players[1]:down("gameButton") then
         self.released_space = true
     end
 
@@ -102,16 +89,12 @@ function scene.update(dt)
     end
 
     if self.started then
-        self.fade_transparency = self.fade_transparency + (3 * dt)
+        self.fade_transparency = self.fade_transparency + (3 * App.tickLength)
     end
 
     if self.fade_transparency >= 1 then
         Sceneman.switchScene("game_runner")
     end
-end
-
----@diagnostic disable-next-line
-function scene.tick()
 end
 
 function scene.draw()

@@ -1,5 +1,6 @@
 local FontRes = require("fontres")
 local Input = require("input")
+local Userdata = require("userdata")
 
 local scene = Sceneman.scene()
 local self
@@ -18,8 +19,12 @@ local letterIterator
 local getLetterDrawOffset
 ---@type fun(yBase:number)
 local drawLetters
+---@type fun()
+local submitScore
 
-function scene.load(data)
+function scene.load(score)
+    print("score: " .. tostring(score))
+
     self = {}
     self.cursorPos = 1
     self.tick = 0
@@ -29,7 +34,15 @@ function scene.load(data)
         auxButton2 = false,
         auxButton3 = false
     }
+    self.buttonsReleased = {
+        gameButton = false,
+        auxButton1 = false,
+        auxButton2 = false,
+        auxButton3 = false
+    }
     self.userName = ""
+    self.score = score
+    self.wantExit = false
 
     Lg.setBackgroundColor(0, 0, 0)
 end
@@ -44,10 +57,23 @@ function scene.update(dt)
             self.buttonsPressed[k] = true
         end
     end
+
+    for k in pairs(self.buttonsReleased) do
+        if Input.players[1]:released(k) then
+            self.buttonsReleased[k] = true
+        end
+    end
 end
 
 ---@diagnostic disable-next-line
 function scene.tick()
+    local idev = Input.players[1]
+
+    if self.wantExit and not idev:down("gameButton") then
+        submitScore()
+        return
+    end
+    
     if self.buttonsPressed.auxButton3 then
         self.cursorPos = self.cursorPos + 1
         if self.cursorPos > #LETTERS then
@@ -67,7 +93,7 @@ function scene.tick()
         local nameLen = self.userName:len()
 
         if option == "ok" then
-            
+            self.wantExit = true
         elseif option == "back" then
             if nameLen > 0 then
                 self.userName = self.userName:sub(1, nameLen - 1)
@@ -79,6 +105,9 @@ function scene.tick()
 
     for k in pairs(self.buttonsPressed) do
         self.buttonsPressed[k] = false
+    end
+    for k in pairs(self.buttonsReleased) do
+        self.buttonsReleased[k] = false
     end
 
     self.tick = self.tick + 1
@@ -146,6 +175,29 @@ function drawLetters(yBase)
     end
 
     Lg.pop()
+end
+
+function submitScore()
+    local name = self.userName
+    if name == "" then
+        name = "ANONY"
+    end
+    local score = self.score
+
+    for i=1, Userdata.scoreboardCount do
+        local entry = Userdata.scoreboard[i]
+        if score >= entry.score then
+            table.insert(Userdata.scoreboard, i, {
+                score = score,
+                name = name
+            })
+            -- remove last value
+            table.remove(Userdata.scoreboard)
+            break
+        end
+    end
+
+    Sceneman.switchScene("title")
 end
 
 return scene
