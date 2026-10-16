@@ -125,6 +125,10 @@ function Runner:release()
             res:release()
         end
     end
+
+    for i=1, 3 do
+        Display.items[i] = "nil"
+    end
 end
 
 ---@param dt number
