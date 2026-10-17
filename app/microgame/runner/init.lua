@@ -97,6 +97,29 @@ function Runner:new(params)
 
     self.res.imgBgBlackGradient = Lg.newImage("/res/img/bg_black_gradient.png")
     self.res.beetleFaceSpr = Sprite.new("/res/sprites/firebeetle_face.json")
+
+    self.res.asrcBorderExpand =
+        love.audio.newSource("/res/sounds/border_expand.wav", "static")
+    self.res.asrcBorderExpand:setVolume(0.5)
+    self.res.asrcBorderContract =
+        love.audio.newSource("/res/sounds/border_contract.wav", "static")
+    self.res.asrcBorderContract:setVolume(0.5)
+    
+    do
+        local function newSndData(nm)
+            return love.sound.newSoundData(
+                ("/res/music/game_intermission/%s.wav"):format(nm)
+            )
+        end
+
+        self.res.intermissionSnddata = {
+            statusLose = newSndData("status_lose"),
+            statusWin = newSndData("status_win"),
+            speedUp = newSndData("effect_speed_up"),
+            stageScreen = newSndData("stage"),
+            gameOver = newSndData("game_over"),
+        }
+    end
     
     ---@type microgame.Runner.State
     self.state = nil
@@ -119,15 +142,35 @@ function Runner:new(params)
     self:_nextRound()
 end
 
-function Runner:release()
-    for _, res in pairs(self.res) do
+local function releaseResTable(resTable)
+    for _, res in pairs(resTable) do
+        if res.stop then
+            res:stop()
+        end
         if res.release then
             res:release()
         end
     end
+end
+
+function Runner:release()
+    releaseResTable(self.res.intermissionSnddata)
+    self.res.intermissionSnddata = nil
+    releaseResTable(self.res)
 
     for i=1, 3 do
         Display.items[i] = "nil"
+    end
+end
+
+function Runner:_releaseResources(resTable)
+    for _, res in pairs(resTable) do
+        if res.stop then
+            res:stop()
+        end
+        if res.release then
+            res:release()
+        end
     end
 end
 

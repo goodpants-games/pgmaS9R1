@@ -19,10 +19,11 @@ function EnterGameState:new(runner, data)
     self.time = 0
     self.state = 1
     self.stateTimer = 0
-    self.displayLength = 60 - speed * 15
+    self.displayLength = 60 - speed * 8
     self.effectAnimSpeed = 3 * (1 + speed * 0.25)
     self.strobeColorMask = { 1, 1, 1 }
     self.interpStrobeColorMask = { 1, 1, 1 }
+    self.musicQueue = love.audio.newQueueableSource(48000, 16, 2, 4)
 
     -- control parameters for the seizure pattern
     self.patternStart = 1
@@ -32,31 +33,56 @@ function EnterGameState:new(runner, data)
     self.speedUp = false
     self.gameOver = not not data.gameOver -- force coercion to bool
     local gameMgr = runner.gameManager
+
+    local sndData = runner.res.intermissionSnddata
     
-    if not self.gameOver then
+    if self.gameOver then
+        self.musicQueue:queue(sndData.statusLose)
+        self.musicQueue:queue(sndData.gameOver)
+        self:_setStrobeColorMask(1, 0.2, 0.2, true)
+    else
         local levelData = GameConf.speedUpPoints[gameMgr.difficulty + 1]
 
         self.bossRound = runner.round % GameConf.bossRoundInterval == 0
         self.speedUp = table.index_of(levelData, runner.round) ~= nil
-    end
-
-    if self.speedUp then
-        gameMgr.speed = gameMgr.speed + 1
-    end
-
-    if self.bossRound then
-        gameMgr.speed = 0
-        gameMgr.difficulty = math.min(gameMgr.difficulty + 1, 2)
-        runner.round = 0
-
-        if runner.lives < GameConf.maxLives then
-            runner.lives = runner.lives + 1
+        
+        if runner.lostGame then
+            self.musicQueue:queue(sndData.statusLose)
+            self:_setStrobeColorMask(1, 0.2, 0.2, true)
+        else
+            self.musicQueue:queue(sndData.statusWin)
         end
+
+        if self.speedUp or self.bossRound then
+            self.musicQueue:queue(sndData.speedUp)
+        end
+
+        if self.speedUp then
+            gameMgr.speed = gameMgr.speed + 1
+        end
+
+        if self.bossRound then
+            gameMgr.speed = 0
+            gameMgr.difficulty = math.min(gameMgr.difficulty + 1, 2)
+            runner.round = 0
+
+            if runner.lives < GameConf.maxLives then
+                runner.lives = runner.lives + 1
+            end
+        end
+        
+        self.musicQueue:queue(sndData.stageScreen)
     end
 
-    if runner.lostGame then
-        self:_setStrobeColorMask(1, 0.2, 0.2, true)
-    end
+    self.musicQueue:setPitch(60 / self.displayLength)
+    self.musicQueue:setVolume(0.5)
+
+    runner.res.asrcBorderExpand:play()
+end
+
+function EnterGameState:exit(runner)
+    self.musicQueue:stop()
+    self.musicQueue:release()
 end
 
 ---@param r number
@@ -102,6 +128,9 @@ function EnterGameState:tick()
             self.patternEnd = math.round(math.min(END_MAX, self.patternEnd + self.effectAnimSpeed))
         else
             self.state = 2
+
+            runner.res.asrcBorderExpand:stop()
+            self.musicQueue:play()
         end
     
     elseif self.state == 2 then
@@ -116,9 +145,11 @@ function EnterGameState:tick()
 
         if self.stateTimer == self.displayLength * stages then
             self.state = 3
+
+            runner.res.asrcBorderContract:play()
         end
 
-        if self.stateTimer == self.displayLength then
+        if self.stateTimer == self.displayLength and not self.gameOver then
             if self.speedUp then
                 self:_setStrobeColorMask(1, 0.2, 1)    
             else
@@ -135,6 +166,7 @@ function EnterGameState:tick()
             Sceneman.switchScene("game_end", runner.gamesCompleted)
         else
             self.runner:_switchState("play")
+            runner.res.asrcBorderContract:stop()
         end
     end
 
