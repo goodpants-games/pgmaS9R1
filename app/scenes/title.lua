@@ -109,6 +109,9 @@ function scene.draw()
         local textY = Display.scrH - 35
 
         if self.tick % 30 < 15 then
+            Lg.setColor(0, 0, 0.7)
+            Lg.draw(self.start_prompt, textX+1, textY+1)
+            Lg.setColor(1, 1, 1)
             Lg.draw(self.start_prompt, textX, textY)
         end
     end
