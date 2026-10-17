@@ -10,6 +10,8 @@ local Input = require("input")
 local scene = Sceneman.scene()
 local self
 
+local MARQUEE_TEXT = "        THE OBJECT OF THIS GAME IS TO SUCCESSFULLY COMPLETE AS MANY \"MICROGAMES\" AS YOU CAN BEFORE RUNNING OUT OF LIVES. THESE ARE VARIOUS BRIEF MINIGAMES WHICH ARE CONTROLLED VIA THE SPACE KEY. YOU MAY ALSO PICK UP ITEMS AS YOU PROGRESS, WHICH YOU ACTIVATE IN-GAME WITH THE A, S, OR D KEYS. CAN YOU REACH #1 ON THE LEADERBOARDS...? PRESENTED BY TEAM FIREBEETLE: PKHEAD, CZ43, AND EXOTICCHEESE."
+
 function scene.load(data)
     print("load title")
     self = {}
@@ -22,6 +24,10 @@ function scene.load(data)
     self.start_prompt_txt = "INSERT COIN"
     self.start_prompt = Lg.newText(fontres.bold, self.start_prompt_txt)
     self.start_prompt_wrap_limit = 100
+
+    self.info_txt = Lg.newText(fontres.quinque, MARQUEE_TEXT)
+    self.info_txt_x = 0
+    self.info_txt_w = self.info_txt:getWidth()
 
     self.controls_prompt_txt = "CONTROLS: Space,A,S,D"
     self.controls_prompt = Lg.newText(fontres.quinque, self.start_prompt_txt)
@@ -59,6 +65,7 @@ function scene.unload()
     self.coin_insert_audio:release()
     self.switch_audio:release()
     self.img_title:release()
+    self.info_txt:release()
     self = nil
 end
 
@@ -96,6 +103,7 @@ function scene.update(dt)
     end
 
     self.tick = self.tick + 1
+    self.info_txt_x = (self.info_txt_x + 0.75) % self.info_txt_w
 end
 
 function scene.draw()
@@ -116,7 +124,13 @@ function scene.draw()
         end
     end
 
-    Lg.draw(self.controls_prompt, Display.scrW/2 - self.controls_prompt_wrap_limit/2, Display.scrH - 15)
+    -- marquee info text
+    do
+        Lg.draw(self.info_txt, math.round(-self.info_txt_x), Display.scrH - 17)
+        Lg.draw(self.info_txt, math.round(-self.info_txt_x + self.info_txt_w), Display.scrH - 17)
+    end
+
+    Lg.draw(self.controls_prompt, Display.scrW/2 - self.controls_prompt_wrap_limit/2, Display.scrH - 25)
     
     -- scoreboard
     local hsvToRgb = batteries.colour.hsv_to_rgb
