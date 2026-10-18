@@ -34,8 +34,6 @@ local function get_new_baton_config()
         tinsert(controls.down, "key:s")
     end
 
-    batteries.pretty.print(controls)
-
     return controls
 end
 
