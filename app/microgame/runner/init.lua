@@ -355,6 +355,11 @@ local function nextRoundCallback(self)
     self.canUseItems = false
     self.round = self.round + 1
 
+    return runStates.gameIntermission(self, {
+        lostGame = self.lostGame
+    })
+
+    --[[
     -- ouch
     if self.lostGame then
         if self.lifeShields > 0 then
@@ -381,6 +386,7 @@ local function nextRoundCallback(self)
     else
         return runStates.enterGame(self)
     end
+    --]]
 end
 
 function Runner:_nextRound()
@@ -528,9 +534,9 @@ end
 
 
 --------------------------------------------------------------------------------
---- STATE: enterGame
+--- STATE: gameIntermission
 --------------------------------------------------------------------------------
-runStates.enterGame = require("microgame.runner.enter_game")
+runStates.gameIntermission = require("microgame.runner.game_intermission")
 
 
 --------------------------------------------------------------------------------
@@ -861,7 +867,9 @@ function ItemSelectState:tick()
             end
         end
 
-        runner:_switchState("enterGame")
+        runner:_switchState("gameIntermission", {
+            lostGame = false
+        })
     end
 
     self.tickCnt = self.tickCnt + 1
