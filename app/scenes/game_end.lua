@@ -56,11 +56,29 @@ function scene.load(score)
         self.letterVy[i] = 0
     end
 
+    self.music = love.audio.newSource("/res/music/name_entry.ogg", "stream")
+    self.music:setVolume(0.8)
+    self.music:setLooping(true)
+    self.music:play()
+
+    self.snd = {}
+    for _, nm in pairs({"back", "move", "select", "err"}) do
+        self.snd[nm] = love.audio.newSource(("/res/sounds/name_entry/%s.wav"):format(nm), "static")
+    end
+
     Lg.setBackgroundColor(0, 0, 0)
 end
 
 function scene.unload()
     self.buttonsSpr:release()
+    self.music:stop()
+    self.music:release()
+
+    for _, snd in pairs(self.snd) do
+        snd:stop()
+        snd:release()
+    end
+
     self = nil
 end
 
@@ -97,6 +115,9 @@ function scene.update()
         if self.cursorPos > #LETTERS then
             self.cursorPos = 1
         end
+
+        self.snd.move:stop()
+        self.snd.move:play()
     end
 
     -- cursor left
@@ -108,6 +129,9 @@ function scene.update()
         if self.cursorPos == 0 then
             self.cursorPos = #LETTERS
         end
+
+        self.snd.move:stop()
+        self.snd.move:play()
     end
 
     -- back keybind
@@ -119,6 +143,12 @@ function scene.update()
         local nameLen = self.userName:len()
         if nameLen > 0 then
             self.userName = self.userName:sub(1, nameLen - 1)
+
+            self.snd.back:stop()
+            self.snd.back:play()
+        else
+            self.snd.err:stop()
+            self.snd.err:play()
         end
     end
 
@@ -131,12 +161,26 @@ function scene.update()
 
         if option == "ok" then
             self.wantExit = true
+            self.snd.select:stop()
+            self.snd.select:play()
         elseif option == "back" then
             if nameLen > 0 then
                 self.userName = self.userName:sub(1, nameLen - 1)
+                self.snd.back:stop()
+                self.snd.back:play()
+            else
+                self.snd.err:stop()
+                self.snd.err:play()
             end
-        elseif nameLen < MAX_NAME_LEN then
-            self.userName = self.userName .. LETTERS[self.cursorPos]
+        else
+            if nameLen < MAX_NAME_LEN then
+                self.userName = self.userName .. LETTERS[self.cursorPos]
+                self.snd.select:stop()
+                self.snd.select:play()
+            else
+                self.snd.err:stop()
+                self.snd.err:play()
+            end
         end
     end
 
