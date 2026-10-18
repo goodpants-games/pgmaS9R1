@@ -18,8 +18,8 @@ local TITLE_LETTER_OX = 42
 local TITLE_LETTER_OY = 20
 
 local HUE_SHIFT_SHADER_SRC = [[
-uniform float u_hue = 0.0;
-uniform float u_sat = 0.0;
+uniform float u_hue;
+uniform float u_sat;
 
 vec3 rgb2hsv(vec3 c)
 {
