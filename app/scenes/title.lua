@@ -152,8 +152,9 @@ function scene.update(dt)
 end
 
 function scene.draw()
-    -- draw game title
     local hsvToRgb = batteries.colour.hsv_to_rgb
+
+    -- draw game title
     Lg.setColor(1, 1, 1)
     for i=8, 0, -1 do
         local phase = 1/100
@@ -215,7 +216,6 @@ function scene.draw()
     Lg.draw(self.controls_prompt, Display.scrW/2 - self.controls_prompt_wrap_limit/2, Display.scrH - 25)
     
     -- scoreboard
-    local hsvToRgb = batteries.colour.hsv_to_rgb
     local textW = fontres.quinque:getWidth("00...00 XXXXX")
     for i, text in ipairs(self.leaderboard_texts) do
         local wave = math.sin((self.tick/40 + i*0.7) * (math.pi/2))
@@ -227,7 +227,14 @@ function scene.draw()
         -- Lg.setColor(0, 0, 0.5)
         Lg.draw(text, textX+1, textY+1)
 
-        Lg.setColor(1, 1, 1)
+        if Userdata.scoreboard[i].isUser then
+            local s = (math.sin((self.tick/30) * (math.pi*2))+1)/2
+            local r,g,b = hsvToRgb(60/365, 0.0, s)
+            Lg.setColor(r, g, b)
+        else
+            Lg.setColor(1, 1, 1)
+        end
+
         Lg.draw(text, textX, textY)
     end
 

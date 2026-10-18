@@ -1,7 +1,7 @@
 local UserData = {}
 
 local function boardEntry(score, name)
-    return { name = name, score = score }
+    return { name = name, score = score, isUser = false, }
 end
 
 UserData.scoreboardCount = 10

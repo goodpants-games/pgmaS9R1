@@ -264,7 +264,8 @@ function submitScore()
         if score >= entry.score then
             table.insert(Userdata.scoreboard, i, {
                 score = score,
-                name = name
+                name = name,
+                isUser = true
             })
             -- remove last value
             table.remove(Userdata.scoreboard)
