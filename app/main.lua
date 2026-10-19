@@ -11,12 +11,12 @@ App.mousey = 0
 App.frame = 0
 
 local SIDE_BLUR_SCALE = 6.0
+local DISPLAY_RENDER_SCALE = 3.0
 
 local display_canvas = Lg.newCanvas(App.scrW, App.scrH, { dpiscale = 1.0 })
 local shellCanvas = Lg.newCanvas(240, 180, { dpiscale = 1.0 })
 local sideBlurCanvas = Lg.newCanvas(Display.scrW, Display.scrH / SIDE_BLUR_SCALE, { dpiscale = 1.0 })
-
-local screenShader = Lg.newShader("/res/shaders/screen.frag.glsl")
+local screenShader = require("crt_shader")
 
 local display_ox = 0.0
 local display_oy = 0.0
@@ -135,6 +135,10 @@ function love.keypressed(key)
         Debug.enabled = not Debug.enabled
     end
 
+    if key == "f3" then
+        USE_CRT = not USE_CRT
+    end
+
     if not IS_PACKAGED and key == "f12" then
         local data = display_canvas:newImageData()
         local fdata = data:encode("png")
@@ -246,6 +250,11 @@ function love.draw()
     Jprof.push("draw")
 
     if did_tick then
+        local rscl = DISPLAY_RENDER_SCALE
+        local scrX = math.round(Display.scrX / rscl)
+        local liSx = 12
+        local liOx = 16
+
         Display.drawDisplay()
 
         -- draw display to side blur canvas
@@ -263,11 +272,7 @@ function love.draw()
         Lg.clear(bg_r, bg_g, bg_b, bg_a)
 
         Lg.setColor(1, 1, 1)
-        Lg.draw(shellCanvas, 0, 0, 0, 3, 3)
-
-        local scrX = math.round(Display.scrX / 3)
-        local liSx = 12
-        local liOx = 16
+        Lg.draw(shellCanvas, 0, 0, 0, rscl, rscl)
 
         -- set up light influence draw
         Lg.setColor(0.5, 0.5, 0.5, 1.0)
@@ -277,15 +282,15 @@ function love.draw()
         Lg.draw(sideBlurCanvas,
             scrX - liOx, 0,
             0,
-            liSx, 3 * SIDE_BLUR_SCALE
+            liSx, rscl * SIDE_BLUR_SCALE
         )
         -- draw light influence on right bar
         Lg.setScissor(630, 0, 12, App.scrH)
         sideBlurCanvas:setFilter("linear", "linear")
         Lg.draw(sideBlurCanvas,
-            (scrX + Display.scrW*3) - Display.scrW * liSx + liOx, 0,
+            (scrX + Display.scrW*rscl) - Display.scrW * liSx + liOx, 0,
             0,
-            liSx, 3 * SIDE_BLUR_SCALE)
+            liSx, rscl * SIDE_BLUR_SCALE)
 
         -- revert the setup
         Lg.setBlendMode("alpha")
@@ -295,13 +300,14 @@ function love.draw()
         Lg.setColor(1, 1, 1)
         if USE_CRT then
             Lg.setShader(screenShader)
-            screenShader:send("u_row_freq", Display.canvas:getHeight())
+            -- screenShader:send("u_row_freq", Display.canvas:getHeight())
+            screenShader:send("signal_size", { Display.canvas:getDimensions() })
             Display.canvas:setFilter("linear", "linear")
-            Lg.draw(Display.canvas, scrX, 0, 0, 3, 3)
+            Lg.draw(Display.canvas, scrX, 0, 0, rscl, rscl)
             Lg.setShader()
         else
             Display.canvas:setFilter("nearest", "nearest")
-            Lg.draw(Display.canvas, scrX, 0, 0, 3, 3)
+            Lg.draw(Display.canvas, scrX, 0, 0, rscl, rscl)
         end
 
         Debug.draw:flush()
