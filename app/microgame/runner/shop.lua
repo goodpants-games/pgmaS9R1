@@ -288,18 +288,78 @@ function Shop:draw()
         Lg.setColor(1, 0, 0)
         Lg.rectangle("fill", 0, counterY, GameConf.scrW, 2)
     end
+
+    local txt1 = "CHANGE:TAP"
+    Lg.setColor(0, 0, 0)
+    self:_drawControlText(txt1, "left", 1, 12)
+    if self.removeItem then
+        Lg.setColor(0.2, 0.2, 0.2)
+    else
+        Lg.setColor(1, 1, 1)
+    end
+    self:_drawControlText(txt1, "left", 0, 11)
+       
+    local txt2 = self.removeItem and "SKIP:HOLD" or "CONFIRM:HOLD"
+    Lg.setColor(0, 0, 0)
+    self:_drawControlText(txt2, "left", 1, 22)
+    Lg.setColor(1, 1, 1)
+    self:_drawControlText(txt2, "left", 0, 21)
+end
+
+---@param text string
+---@param align "left"|"center"|"right"
+---@param ox number
+---@param cy number
+function Shop:_drawControlText(text, align, ox, cy)
+    local SPACING = 2
+
+    local cx = math.round(GameConf.scrW / 2)
+    local btnsSpr = self.runner.res.buttonsSpr
+    btnsSpr:play("key_gameButton")
+    
+    local textW = FontRes.quinque:getWidth(text)
+    local contentW = textW + 12 + SPACING
+    local textX ---@type number
+
+    if align == "left" then
+        textX = cx - 80
+    elseif align == "right" then
+        textX = cx + 80 - contentW
+    elseif align == "center" then
+        textX = cx - contentW / 2
+    end
+    textX = math.round(textX + ox)
+    
+    local textY = math.round(cy - FontRes.quinque:getHeight() / 2)
+    Lg.setFont(FontRes.quinque)
+    Lg.print(text, textX, textY)
+    btnsSpr:draw(textX + textW + SPACING, textY - 1)
 end
 
 function Shop:_drawConfirmTimer(y)
+    local x = math.round(GameConf.scrW / 2)
+    local y = math.round(y)
+    local btnsSpr = self.runner.res.buttonsSpr
+    btnsSpr:play("key_gameButton")
+
+    -- draw text
+    -- Lg.setColor(0.5, 0.5, 0.5)
+    -- self:_drawControlText("CONFIRM:HOLD", y)
+
     -- draw confirm timer
     if self.confirmTimer > 10 then
-        local x = math.round(GameConf.scrW / 2)
-        local y = math.round(y)
         local t = (self.confirmTimer - CONFIRM_MIN) / (CONFIRM_LENGTH - CONFIRM_MIN)
         local w = math.round(t * 100)
+        local h = 8
         local r,g,b = Color.hsv_to_rgb(t, 1, 1)
         Lg.setColor(r, g, b)
-        self:_centerRect("fill", x, y, w, 8)
+        self:_centerRect("fill", x, y, w, h)
+
+        -- Lg.push("all")
+        -- Lg.setScissor(x - w/2, y - h/2, w, h)
+        -- Lg.setColor(0, 0, 0)
+        -- self:_drawControlText("CONFIRM:HOLD", y)
+        -- Lg.pop()
     end
 end
 
@@ -312,8 +372,7 @@ function Shop:_updateText()
     local text = item.desc
     if self.removeItem then
         text = [[Your inventory is full!
-Use an item to discard it.
-Hold the button to skip.]]
+Use an item to discard it.]]
     end
 
     self.itemNameDesc:setf(text, 160, "center")
