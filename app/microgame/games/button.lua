@@ -13,11 +13,12 @@ local Game = batteries.class {
 }
 
 Game.resRoot = "/res/microgames/button"
+Game.verb = "Press!"
+Game.controls = {"tap"}
 
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Press!"
     self.backgroundColor = { 1.0, 1.0, 1.0 }
 
     print(self:getRes("button.json"))

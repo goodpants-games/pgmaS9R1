@@ -8,11 +8,12 @@ local Game = batteries.class {
     extends = GameBase
 }
 
+Game.verb = "Swing!"
+Game.controls = {"tap"}
+
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-
-    self.verb = "Defend!"
 
     local resRoot = "/res/microgames/ssi_swing/"
 

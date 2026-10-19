@@ -19,10 +19,12 @@ local Game = batteries.class {
     extends = GameBase
 }
 
+Game.verb = "Sling!"
+Game.controls = {"tap"}
+
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Sling!"
     self.backgroundColor = { batteries.colour.unpack_rgb(0xd8a2bf) }
 
     self.resRoot = "/res/microgames/sling/"

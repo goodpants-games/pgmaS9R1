@@ -12,6 +12,8 @@ local Game = batteries.class {
 }
 
 Game.resRoot = "/res/microgames/flower"
+Game.verb = "Pluck!"
+Game.controls = {"tap"}
 
 local SCALE_MAJOR = {0,2,4,5,7,9,11,12}
 local SCALE_OCTATONIC = {0,2,3,5,6,8,9,11,12}
@@ -19,7 +21,6 @@ local SCALE_OCTATONIC = {0,2,3,5,6,8,9,11,12}
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Pluck!"
     self.win = false
     self.backgroundColor = { batteries.colour.unpack_rgb(0x7570ff) }
     mgr:setGameLength(GameConf.refGameLength - mgr.speed)

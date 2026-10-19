@@ -10,10 +10,12 @@ local Game = batteries.class {
     extends = GameBase
 }
 
+Game.verb = "Bounce!"
+Game.controls = {"hold"}
+
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Bounce!"
     self.backgroundColor = { 0.0, 0.0, 0.0 }
 
     self.paddleRest = 160.0

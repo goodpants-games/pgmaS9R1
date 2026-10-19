@@ -13,11 +13,12 @@ local Game = batteries.class {
 }
 
 Game.resRoot = "/res/microgames/fruit_catch"
+Game.verb = "Catch!"
+Game.controls = {"tap"}
 
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Catch!"
     self.backgroundColor = { 0.1, 0.4, 1.0 }
     mgr:setGameLength(GameConf.refGameLength - mgr.speed)
 

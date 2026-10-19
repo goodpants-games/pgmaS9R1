@@ -6,6 +6,7 @@
 ---@field onTimerIncrease fun(self:microgame.Game)?
 ---@field win boolean
 ---@field verb string
+---@field controls string[]?
 ---@field backgroundColor number[]
 ---@field resRoot string
 local Base = batteries.class { name = "microgame.GameBase" }

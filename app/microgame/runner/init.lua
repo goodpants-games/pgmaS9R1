@@ -95,6 +95,9 @@ function Runner:new(params)
     self.res.itemsSpr = Sprite.new("/res/sprites/items.json")
     self.res.itemsSpr.alignment = "center"
 
+    self.res.buttonsSpr = Sprite.new("/res/sprites/buttons.json")
+    self.res.buttonsSpr.alignment = "topleft"
+
     self.res.imgBgBlackGradient = Lg.newImage("/res/img/bg_black_gradient.png")
     self.res.beetleFaceSpr = Sprite.new("/res/sprites/firebeetle_face.json")
 
@@ -590,14 +593,42 @@ function PlayState:draw()
     -- draw verb text
     if self.verbTextTimer > 0.0 then
         local textW, textH = runner.verbText:getDimensions()
-        local drawX = (GameConf.scrW - textW) / 2
-        local drawY = (GameConf.scrH - textH) / 2
+        local drawX = math.round((GameConf.scrW - textW) / 2)
+        local drawY = math.round((GameConf.scrH - textH) / 2)
 
         Lg.setColor(0, 0, 0, 0.5)
         Lg.draw(runner.verbText, drawX + 2, drawY + 2)
 
         Lg.setColor(1, 1, 1)
         Lg.draw(runner.verbText, drawX, drawY)
+
+        local game = gameMgr.game
+        if game and game.controls then
+            local font = FontRes.quinque
+            local btnsSpr = runner.res.buttonsSpr
+            btnsSpr:play("key_gameButton")
+
+            drawY = drawY + 30
+            drawX = math.round(GameConf.scrW / 2)
+            Lg.setFont(font)
+
+            for _, control in pairs(game.controls) do
+                local textX = drawX - font:getWidth(control)
+                local textY = drawY
+                local btnX = drawX + 2
+                local btnY = drawY
+
+                Lg.setColor(0, 0, 0, 0.5)
+                Lg.print(control, textX + 1, textY + 1)
+                btnsSpr:draw(btnX + 1, btnY + 1)
+
+                Lg.setColor(1, 1, 1)
+                Lg.print(control, textX, textY)
+                btnsSpr:draw(btnX, btnY)
+                
+                drawY = drawY + 9
+            end
+        end
     end
 
     -- timer bar

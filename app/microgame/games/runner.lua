@@ -51,6 +51,10 @@ local Game = batteries.class {
     extends = GameBase
 }
 
+Game.verb = "Leap!"
+Game.controls = {"tap", "hold"}
+Game.resRoot = "res/microgames/runner"
+
 local function rectCollide(e1, e2)
     return e1.x + e1.w > e2.x
            and e1.y + e1.h > e2.y
@@ -61,8 +65,6 @@ end
 ---@param mgr microgame.Manager
 function Game:new(mgr)
     self:super(mgr)
-    self.verb = "Leap!"
-    self.resRoot = "res/microgames/runner"
     mgr:setGameLength(GameConf.refGameLength - mgr.speed)
 
     self.win = true
