@@ -72,56 +72,6 @@ function EnterGameState:new(runner, data)
         self.musicQueue:queue(runner.res.intermissionSnddata.statusWin)
     end
 
-    -- local sndData = runner.res.intermissionSnddata
-    
-    --[[
-    if self.gameOver then
-        self.musicQueue:queue(sndData.statusLose)
-        self.musicQueue:queue(sndData.gameOver)
-        self:_setStrobeColorMask(1, 0.2, 0.2, true)
-
-        table.insert(self.stateSequence, "winStatus")
-        table.insert(self.stateSequence, "gameOver")
-    else
-        local levelData = GameConf.speedUpPoints[gameMgr.difficulty + 1]
-
-        self.bossRound = runner.round % GameConf.bossRoundInterval == 0
-        self.speedUp = table.index_of(levelData, runner.round) ~= nil
-
-        table.insert(self.stateSequence, "winStatus")
-        if runner.lostGame then
-            self.musicQueue:queue(sndData.statusLose)
-            self:_setStrobeColorMask(1, 0.2, 0.2, true)
-        else
-            self.musicQueue:queue(sndData.statusWin)
-        end
-
-        if self.speedUp or self.bossRound then
-            self.musicQueue:queue(sndData.speedUp)
-        end
-
-        if self.speedUp then
-            table.insert(self.stateSequence, "speedUp")
-            -- gameMgr.speed = gameMgr.speed + 1
-        end
-
-        if self.bossRound then
-            -- gameMgr.speed = 0
-            -- gameMgr.difficulty = math.min(gameMgr.difficulty + 1, 2)
-            -- runner.round = 0
-
-            -- if runner.lives < GameConf.maxLives then
-            --     runner.lives = runner.lives + 1
-            -- end
-        end
-        
-        self.musicQueue:queue(sndData.stageScreen)
-    end
-
-    self.musicQueue:setPitch(60 / self.displayLength)
-    self.musicQueue:setVolume(0.5)
-    --]]
-
     runner.res.asrcBorderExpand:play()
     self.nextSubState = "lifeStatus"
 end
@@ -240,43 +190,6 @@ function EnterGameState:tick()
     if self.subState and self.subState.update then
         self.nextSubState = self.subState.update()
     end
-    
-    -- elseif self.state == 2 then
-    --     self.stateTimer = self.stateTimer + 1
-    --     local stages = 2
-    --     if self.bossRound or self.speedUp then
-    --         stages = 3
-    --     end
-    --     if self.gameOver then
-    --         stages = 4
-    --     end
-
-    --     if self.stateTimer == self.displayLength * stages then
-    --         self.state = 3
-
-    --         runner.res.asrcBorderContract:play()
-    --     end
-
-    --     if self.stateTimer == self.displayLength and not self.gameOver then
-    --         if self.speedUp then
-    --             self:_setStrobeColorMask(1, 0.2, 1)    
-    --         else
-    --             self:_setStrobeColorMask(1, 1, 1)
-    --         end
-    --     end
-    
-    -- elseif self.state == 3 then
-    --     if self.patternEnd > 1 then
-    --         self.patternEnd = math.round(math.max(self.patternEnd - self.effectAnimSpeed, 1))
-    --     elseif self.patternStart > 1 then
-    --         self.patternStart = math.round(math.max(self.patternStart - self.effectAnimSpeed, 1))
-    --     elseif self.gameOver then
-    --         Sceneman.switchScene("game_end", runner.gamesCompleted)
-    --     else
-    --         self.runner:_switchState("play")
-    --         runner.res.asrcBorderContract:stop()
-    --     end
-    -- end
 
     self.time = self.time + 1
 end
@@ -292,88 +205,6 @@ function EnterGameState:draw()
     if self.patternEnd > 1 and self.subState and self.subState.draw then
         self.subState.draw()
     end
-
-    --[[
-    local beetleFaceSpr = runner.res.beetleFaceSpr
-
-    if self.patternEnd > 1 then
-        -- beetle win/lose sprites
-        if self.stateTimer < self.displayLength then
-            Lg.setColor(1, 1, 1)
-            local sprCel = 1
-            if runner.lostGame then
-                sprCel = 2
-            end
-            for i=0, 12 do
-                local x = cx + i * 30 - (self.time%30) - 30
-                local yBase = cy + math.sin((self.time/10 + i/6) * (math.pi/2)) * 6
-                beetleFaceSpr:drawCel(sprCel, x, yBase)
-                -- beetleFaceSpr:drawCel(sprCel, x, yBase + 34)
-            end
-        elseif self.gameOver then
-            local oldFont = Lg.getFont()
-
-            Lg.setFont(FontRes.bold)
-            local textH = FontRes.bold:getHeight() * 2
-            local textX = cx - 40*3/2 + 1
-            local textY = cy - textH * 3/2
-
-            local text = "GAME\nOVER!"
-
-            Lg.setColor(0, 0, 0.7)
-            Lg.printf(text, textX + 2, textY + 2, 40, "center", 0, 3, 3)
-            
-            Lg.setColor(0.8, 0, 0)
-            Lg.printf(text, textX, textY, 40, "center", 0, 3, 3)
-
-            Lg.setFont(oldFont)
-        elseif (self.speedUp or self.bossRound) and self.stateTimer < self.displayLength * 2 then
-            local oldFont = Lg.getFont()
-
-            local textH = FontRes.chunkyNumerals:getHeight()
-            local textX = cx - 40*3/2 + 1
-            local textY = cy - textH * 2
-
-            local text
-            if self.bossRound then
-                text = "LEVEL\nUP!"
-            else
-                text = "SPEED\nUP!"
-            end
-
-            Lg.setFont(FontRes.bold)
-
-            Lg.setColor(0, 0, 0.7)
-            Lg.printf(text, textX + 2, textY + 2, 40, "center", 0, 3, 3)
-
-            if self.time % 6 < 3 then
-                Lg.setColor(1, 1, 0)
-            else
-                Lg.setColor(1, 0, 1)
-            end
-            Lg.printf(text, textX, textY, 40, "center", 0, 3, 3)
-
-            Lg.setFont(oldFont)
-        else
-            local oldFont = Lg.getFont()
-
-            Lg.setFont(FontRes.chunkyNumerals)
-            local textW = FontRes.chunkyNumerals:getWidth("00") - 1
-            local textH = FontRes.chunkyNumerals:getHeight()
-            local textX = cx - textW * 2
-            local textY = cy - textH * 2
-
-            local str = ("%02d"):format(runner.gamesCompleted+1)
-
-            Lg.setColor(0, 0, 0.7)
-            Lg.print(str, textX + 2, textY + 2, 0, 4, 4)
-            Lg.setColor(1, 1, 1)
-            Lg.print(str, textX, textY, 0, 4, 4)
-
-            Lg.setFont(oldFont)
-        end
-    end
-    --]]
 
     -- draw rainbow ripple border
     local maskR, maskG, maskB = self:_getStrobeColorMask()
@@ -398,24 +229,6 @@ function EnterGameState:draw()
             Lg.rectangle("line", x, y, w, h)
         end
     end
-
-    --[[
-    Lg.setColor(0, 0, 0)
-    Lg.rectangle("fill", 0, 0, GameConf.scrW, GameConf.scrH)
-
-    Lg.setColor(1, 1, 1)
-    Lg.print(tostring(runner.gamesCompleted + 1), 10, 10)
-
-    local txt = ""
-    if self.speedUp then
-        txt = txt .. "SPEED UP!"
-    end
-    if self.bossRound then
-        txt = txt .. "LEVEL UP!"
-    end
-    
-    Lg.print(txt, 10, 30)
-    --]]
 end
 
 --------------------------------------------------------------------------------
