@@ -12,6 +12,7 @@ local EnterGameState = batteries.class {
 ---@field enter fun()?
 ---@field exit fun()?
 ---@field update (fun():string?)?
+---@field auxButtonPressed fun(idx:integer)?
 ---@field rawUpdate fun()?
 ---@field draw fun()?
 
@@ -107,6 +108,12 @@ function EnterGameState:rawUpdate(dt)
     end
 end
 
+function EnterGameState:auxButtonPressed(idx)
+    if self.subState and self.subState.auxButtonPressed then
+        self.subState.auxButtonPressed(idx)
+    end
+end
+
 function EnterGameState:tick()
     local runner = self.runner
 
@@ -166,6 +173,7 @@ function EnterGameState:tick()
             self.patternEnd = math.round(math.max(self.patternEnd - self.effectAnimSpeed, END_REST))
         else
             runner.res.asrcBorderContract:stop()
+            self.musicQueue:play()
             self.borderState = "idle"
         end
     
@@ -351,7 +359,10 @@ function subStates.modifier(master)
     end
 
     function self.update()
-        time = time + master.stateSpeed
+        if master.borderState == "idle" then
+            time = time + master.stateSpeed
+        end
+
         if time >= 60 then
             return "stage"
         end
@@ -397,7 +408,10 @@ function subStates.stage(master)
     local displayStr = ("%02d"):format(master.runner.gamesCompleted+1)
 
     function self.update()
-        time = time + master.stateSpeed
+        if master.borderState == "idle" then
+            time = time + master.stateSpeed
+        end
+
         if time >= 60 and master.borderState == "idle" then
             master.borderState = "contract"
             master.runner.res.asrcBorderContract:play()
@@ -477,7 +491,7 @@ function subStates.shop(master)
 
     function self.exit()
         master.borderState = "contract2"
-        -- master.runner.res.asrcBorderContract:play()
+        master.runner.res.asrcBorderContract:play()
         shop:exit()
     end
 
@@ -485,7 +499,15 @@ function subStates.shop(master)
         shop:rawUpdate(dt)
     end
 
+    function self.auxButtonPressed(idx)
+        shop:auxButtonPressed(idx)
+    end
+
     function self.update()
+        if master.borderState == "idle" then
+            shop.res.music:play()
+        end
+
         shop:tick()
         if shop.done then
             local subState = master._substateAfterShop
@@ -495,7 +517,6 @@ function subStates.shop(master)
 
             if sndToQueue then
                 master.musicQueue:queue(sndToQueue)
-                master.musicQueue:play()
             end
 
             return subState

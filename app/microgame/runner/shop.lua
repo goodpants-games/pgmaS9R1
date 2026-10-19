@@ -106,6 +106,10 @@ function Shop:new(runner)
     self.res.beetleSpr = Sprite.new("/res/sprites/firebeetle/firebeetle_shop.json")
     self.res.beetleSpr:play("think")
 
+    self.res.music = love.audio.newSource("/res/music/shop.ogg", "stream")
+    self.res.music:setLooping(true)
+    self.res.music:setVolume(0.6)
+
     self:_updateText()
 end
 
