@@ -389,7 +389,7 @@ function subStates.modifier(master)
         Lg.setColor(0, 0, 0.7)
         Lg.printf(text, textX + 2, textY + 2, 40, "center", 0, 3, 3)
 
-        if master.time % 6 < 3 then
+        if time % 8 < 4 then
             Lg.setColor(1, 1, 0)
         else
             Lg.setColor(1, 0, 1)
@@ -406,10 +406,25 @@ function subStates.stage(master)
     local self = {}
     local time = 0
     local displayStr = ("%02d"):format(master.runner.gamesCompleted+1)
+    local pulse = 0
+    
+    local pulseBeats = { 0, 3, 5, 6 }
 
     function self.update()
+        local timeUpdate = false
         if master.borderState == "idle" then
+            timeUpdate = true
             time = time + master.stateSpeed
+        end
+
+        pulse = math.max(0, pulse - 1/10)
+        local beat = time / 60 * 8
+
+        if pulseBeats[1] then
+            if timeUpdate and beat >= pulseBeats[1] then
+                pulse = 1
+                table.remove(pulseBeats, 1)
+            end
         end
 
         if time >= 60 and master.borderState == "idle" then
@@ -429,10 +444,11 @@ function subStates.stage(master)
         local textH = FontRes.chunkyNumerals:getHeight()
         local textX = cx - textW * 2
         local textY = cy - textH * 2
+        local cfac = 1.0 - pulse
 
-        Lg.setColor(0, 0, 0.7)
+        Lg.setColor(batteries.colour.hsv_to_rgb(time/15, 0.6, 0.7))
         Lg.print(displayStr, textX + 2, textY + 2, 0, 4, 4)
-        Lg.setColor(1, 1, 1)
+        Lg.setColor(cfac, cfac, cfac)
         Lg.print(displayStr, textX, textY, 0, 4, 4)
 
         Lg.setFont(oldFont)
