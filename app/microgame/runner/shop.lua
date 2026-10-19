@@ -37,7 +37,7 @@ local ITEM_DESCS = {
     },
     save1 = {
         name = "Disk",
-        desc = "Your devices remember more than you do."
+        desc = "Save your game and load it later."
     }
 }
 
