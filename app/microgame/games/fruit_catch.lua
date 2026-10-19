@@ -51,6 +51,9 @@ function Game:new(mgr)
     self.win = true
     self.playerFailed = false
 
+    self.imgBg = Lg.newImage(self:getRes("bg.png"))
+    self:releaseOnUnload(self.imgBg)
+
     self.sprTeetoe = Sprite.new(self:getRes("teetoe.json"))
     self:releaseOnUnload(self.sprTeetoe)
     self.sprFruit = Sprite.new(self:getRes("fruit.json"))
@@ -160,6 +163,9 @@ function Game:tick()
 end
 
 function Game:draw()
+    Lg.setColor(1, 1, 1)
+    Lg.draw(self.imgBg)
+    
     for _, fruit in pairs(self.fruits) do
         Lg.setColor(1, 1, 1)
         self.sprFruit:drawCel(fruit.sprite, fruit.x, fruit.y)
