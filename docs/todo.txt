@@ -1,4 +1,5 @@
-- make screen have dot-matrix or scanline shader
+- maybe a practice mode would be nice idk. (no, too much work i have to make the whole UI)
+- load all assets for games at start
 
 Points system (maybe??):
 there is a points system. you get points based off how well you do in microgames.
