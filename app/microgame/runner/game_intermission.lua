@@ -1,5 +1,6 @@
 local GameConf = require("microgame.conf")
 local FontRes = require("fontres")
+local Shop = require("microgame.runner.shop")
 
 ---@class microgame.Runner.EnterGameState: microgame.Runner.State
 local EnterGameState = batteries.class {
@@ -11,6 +12,7 @@ local EnterGameState = batteries.class {
 ---@field enter fun()?
 ---@field exit fun()?
 ---@field update (fun():string?)?
+---@field rawUpdate fun()?
 ---@field draw fun()?
 
 ---@type {[string]:fun(master:microgame.Runner.EnterGameState):microgame.Runner.EnterGameState.Substate}
@@ -29,9 +31,13 @@ function EnterGameState:new(runner, data)
     self.subState = nil
     ---@type string?
     self.nextSubState = nil
+    ---@type string?
+    self._substateAfterShop = nil
+    ---@type love.SoundData?
+    self._sndToQueue = nil
 
     self.stateTimer = 0
-    ---@type "expand"|"idle"|"contract"
+    ---@type "expand"|"expand2"|"idle"|"contract"|"contract2"
     self.borderState = "expand"
     self.gameOver = runner.lostGame and runner.lives == 1 and runner.lifeShields == 0
 
@@ -145,6 +151,12 @@ function EnterGameState:_getStrobeColorMask()
     return mask[1], mask[2], mask[3]
 end
 
+function EnterGameState:rawUpdate(dt)
+    if self.subState and self.subState.rawUpdate then
+        self.subState.rawUpdate()
+    end
+end
+
 function EnterGameState:tick()
     local runner = self.runner
 
@@ -158,21 +170,33 @@ function EnterGameState:tick()
         end
     end
 
-    if self.borderState == "expand" then
-        local START_MAX = 105
-        local END_MAX = 50
+    local START_REST = 105
+    local END_REST = 50
+    local END_REST2 = 85
 
-        if self.patternStart < START_MAX then
-            self.patternStart = math.round(math.min(START_MAX, self.patternStart + self.effectAnimSpeed))
-        elseif self.patternEnd < END_MAX then
-            self.patternEnd = math.round(math.min(END_MAX, self.patternEnd + self.effectAnimSpeed))
+    if self.borderState == "expand" then
+        if self.patternStart < START_REST then
+            self.patternStart = math.round(math.min(START_REST, self.patternStart + self.effectAnimSpeed))
+        elseif self.patternEnd < END_REST then
+            self.patternEnd = math.round(math.min(END_REST, self.patternEnd + self.effectAnimSpeed))
         else
             self.borderState = "idle"
 
             runner.res.asrcBorderExpand:stop()
             self.musicQueue:play()
         end
+    
+    elseif self.borderState == "expand2" then
+        if self.patternStart < START_REST then
+            self.patternStart = math.round(math.min(START_REST, self.patternStart + self.effectAnimSpeed))
+        elseif self.patternEnd < END_REST2 then
+            self.patternEnd = math.round(math.min(END_REST2, self.patternEnd + self.effectAnimSpeed))
+        else
+            self.borderState = "idle"
 
+            runner.res.asrcBorderExpand:stop()
+        end
+    
     elseif self.borderState == "contract" then
         if self.patternEnd > 1 then
             self.patternEnd = math.round(math.max(self.patternEnd - self.effectAnimSpeed, 1))
@@ -185,6 +209,14 @@ function EnterGameState:tick()
             else
                 self.runner:_switchState("play")
             end
+        end
+
+    elseif self.borderState == "contract2" then
+        if self.patternEnd > END_REST then
+            self.patternEnd = math.round(math.max(self.patternEnd - self.effectAnimSpeed, END_REST))
+        else
+            runner.res.asrcBorderContract:stop()
+            self.borderState = "idle"
         end
     
     elseif self.borderState == "idle" then
@@ -410,6 +442,7 @@ function subStates.lifeStatus(master)
         if needEnter then
             needEnter = false
             local runner = master.runner
+            local gameMgr = runner.gameManager
 
             if master.speedUp or master.bossRound then
                 nextSubstate = "modifier"
@@ -432,12 +465,25 @@ function subStates.lifeStatus(master)
                 end
             end
 
+            -- enter shop?
+            local levelData = GameConf.shopPoints[gameMgr.difficulty + 1]
+            local enterShop = table.index_of(levelData, runner.round) ~= nil
+            
+            local sndToQueue
             if nextSubstate == "modifier" then
-                master.musicQueue:queue(sndData.speedUp)
+                sndToQueue = sndData.speedUp
             elseif nextSubstate == "stage" then
-                master.musicQueue:queue(sndData.stageScreen)
+                sndToQueue = sndData.stageScreen
             elseif nextSubstate == "gameOver" then
-                master.musicQueue:queue(sndData.gameOver)
+                sndToQueue = sndData.gameOver
+            end
+
+            if enterShop and nextSubstate ~= "gameOver" then
+                master._substateAfterShop = nextSubstate
+                master._sndToQueue = sndToQueue
+                nextSubstate = "shop"
+            else
+                master.musicQueue:queue(sndToQueue)
             end
         end
 
@@ -600,6 +646,53 @@ function subStates.gameOver(master)
         Lg.printf(text, textX, textY, 40, "center", 0, 3, 3)
 
         Lg.setFont(oldFont)
+    end
+
+    return self
+end
+
+function subStates.shop(master)
+    local self = {}
+
+    local shop = Shop(master.runner)
+
+    function self.enter()
+        master.borderState = "expand2"
+        master.runner.res.asrcBorderExpand:play()
+        master:_setStrobeColorMask(1, 1, 1)
+    end
+
+    function self.exit()
+        master.borderState = "contract2"
+        -- master.runner.res.asrcBorderContract:play()
+        shop:exit()
+    end
+
+    function self.rawUpdate(dt)
+        shop:rawUpdate(dt)
+    end
+
+    function self.update()
+        shop:tick()
+        if shop.done then
+            local subState = master._substateAfterShop
+            local sndToQueue = master._sndToQueue
+            master._substateAfterShop = nil
+            master._sndToQueue = nil
+
+            if sndToQueue then
+                master.musicQueue:queue(sndToQueue)
+                master.musicQueue:play()
+            end
+
+            return subState
+        end
+    end
+
+    function self.draw()
+        if shop then
+            shop:draw()
+        end
     end
 
     return self
