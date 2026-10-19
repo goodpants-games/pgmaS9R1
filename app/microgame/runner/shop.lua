@@ -232,7 +232,6 @@ end
 
 function Shop:draw()
     local runner = self.runner
-    local scrX, scrY = runner.scrX, runner.scrY
     local cx = GameConf.scrW / 2
     local cy = GameConf.scrH / 2
     local uiBase = cy + 12

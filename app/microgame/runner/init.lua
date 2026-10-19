@@ -124,9 +124,6 @@ function Runner:new(params)
     ---@type microgame.Runner.State
     self.state = nil
 
-    self.scrX = math.floor((App.scrW - GameConf.scrW) / 2)
-    self.scrY = math.floor((App.scrH - GameConf.scrH) / 2)
-
     -- god damnit
     self.lostGame = false
 

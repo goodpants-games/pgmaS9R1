@@ -1,5 +1,7 @@
 require("conf2")
 
+local USE_CRT = true
+
 local fontres = require("fontres")
 local Input = require("input")
 Display = require("display")
@@ -8,7 +10,13 @@ App.mousex = 0
 App.mousey = 0
 App.frame = 0
 
+local SIDE_BLUR_SCALE = 6.0
+
 local display_canvas = Lg.newCanvas(App.scrW, App.scrH, { dpiscale = 1.0 })
+local shellCanvas = Lg.newCanvas(240, 180, { dpiscale = 1.0 })
+local sideBlurCanvas = Lg.newCanvas(Display.scrW, Display.scrH / SIDE_BLUR_SCALE, { dpiscale = 1.0 })
+
+local screenShader = Lg.newShader("/res/shaders/screen.frag.glsl")
 
 local display_ox = 0.0
 local display_oy = 0.0
@@ -238,11 +246,64 @@ function love.draw()
     Jprof.push("draw")
 
     if did_tick then
+        Display.drawDisplay()
+
+        -- draw display to side blur canvas
+        Lg.setCanvas(sideBlurCanvas)
+        Display.canvas:setFilter("linear", "linear")
+        Lg.draw(Display.canvas, 0, 0, 0, 1.0, 1.0 / SIDE_BLUR_SCALE)
+
+        Lg.setCanvas(shellCanvas)
+        Lg.clear(0, 0, 0)
+        Display.drawShell()
+        Lg.setCanvas()
+
         Lg.setCanvas(display_canvas)
         local bg_r, bg_g, bg_b, bg_a = Lg.getBackgroundColor()
         Lg.clear(bg_r, bg_g, bg_b, bg_a)
 
-        Display.draw()
+        Lg.setColor(1, 1, 1)
+        Lg.draw(shellCanvas, 0, 0, 0, 3, 3)
+
+        local scrX = math.round(Display.scrX / 3)
+        local liSx = 12
+        local liOx = 16
+
+        -- set up light influence draw
+        Lg.setColor(0.5, 0.5, 0.5, 1.0)
+        Lg.setBlendMode("add")
+        -- draw light influence on left bar
+        Lg.setScissor(78, 0, 12, App.scrH)
+        Lg.draw(sideBlurCanvas,
+            scrX - liOx, 0,
+            0,
+            liSx, 3 * SIDE_BLUR_SCALE
+        )
+        -- draw light influence on right bar
+        Lg.setScissor(630, 0, 12, App.scrH)
+        sideBlurCanvas:setFilter("linear", "linear")
+        Lg.draw(sideBlurCanvas,
+            (scrX + Display.scrW*3) - Display.scrW * liSx + liOx, 0,
+            0,
+            liSx, 3 * SIDE_BLUR_SCALE)
+
+        -- revert the setup
+        Lg.setBlendMode("alpha")
+        Lg.setScissor()
+        
+        -- draw screen display, crt shader
+        Lg.setColor(1, 1, 1)
+        if USE_CRT then
+            Lg.setShader(screenShader)
+            screenShader:send("u_row_freq", Display.canvas:getHeight())
+            Display.canvas:setFilter("linear", "linear")
+            Lg.draw(Display.canvas, scrX, 0, 0, 3, 3)
+            Lg.setShader()
+        else
+            Display.canvas:setFilter("nearest", "nearest")
+            Lg.draw(Display.canvas, scrX, 0, 0, 3, 3)
+        end
+
         Debug.draw:flush()
 
         Lg.setCanvas()

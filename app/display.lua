@@ -17,8 +17,8 @@ local UI_ITEM_SLOT_HEIGHT = 12
 ---| "red"
 ---| "blue"
 
-Display.scrW = App.scrH
-Display.scrH = App.scrH
+Display.scrW = 180
+Display.scrH = 180
 Display.scrX = math.floor((App.scrW - Display.scrW) / 2)
 Display.scrY = math.floor((App.scrH - Display.scrH) / 2)
 ---@type love.Canvas
@@ -55,26 +55,10 @@ function Display.tick()
 
 end
 
----Draw the display. Should only be called from main.lua.
-function Display.draw()
-    Lg.push("all")
-    Lg.setCanvas(Display.canvas)
-    do
-        local r, g, b, a = Lg.getBackgroundColor()
-        if a > 0 then
-            Lg.clear(r, g, b, a)
-        end
-    end
-    Sceneman.draw()
-    Lg.pop()
-
+function Display.drawShell()
     -- shell
     Lg.setColor(1, 1, 1)
     Lg.draw(res.shellImg, 0, 0)
-
-    -- display
-    Lg.setColor(1, 1, 1)
-    Lg.draw(Display.canvas, Display.scrX, Display.scrY)
 
     -- draw lives counter
     for i=1, 4 do
@@ -99,6 +83,20 @@ function Display.draw()
         itemsSpr:play(imgName)
         itemsSpr:draw(math.round(drawPos.x + drawOx), math.round(drawPos.y + drawOy))
     end
+end
+
+---Draw the display. Should only be called from main.lua.
+function Display.drawDisplay()
+    Lg.push("all")
+    Lg.setCanvas(Display.canvas)
+    do
+        local r, g, b, a = Lg.getBackgroundColor()
+        if a > 0 then
+            Lg.clear(r, g, b, a)
+        end
+    end
+    Sceneman.draw()
+    Lg.pop()
 end
 
 return Display
