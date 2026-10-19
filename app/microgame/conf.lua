@@ -13,7 +13,7 @@ GameConf.bossRoundInterval = 20
 GameConf.maxLives = 4
 GameConf.speedUpPoints = {
     -- level 1
-    { 8, 14 },
+    { 8, 16 },
     -- level 2
     { 6, 12 },
     -- level 3
