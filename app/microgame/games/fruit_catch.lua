@@ -97,7 +97,7 @@ function Game:tick()
     if self.nextFruitTicker == 0 then
         -- 40 32 24
         -- 32 28 24
-        self.nextFruitTicker = 32 - self.manager.speed * 4
+        self.nextFruitTicker = 38 - self.manager.speed * 4
         self:_newFruit()
         -- if fruit.isDanger and self.manager.speed < 2 then
         --     self:_newFruit(1)
@@ -128,7 +128,7 @@ function Game:tick()
                     self.playerFailed = true
                     self.win = false
                     self.sndDie:stop()
-                    self.sndDie:play()  
+                    self.sndDie:play()
                 else
                     self.sndCatch:stop()
                     self.sndCatch:setPitch(self.sndCatch:getPitch() + 0.2)
@@ -137,7 +137,7 @@ function Game:tick()
             end
         end
 
-        if fruit.y > App.scrH then
+        if fruit.y > Display.scrH then
             fruit.markedForDeletetion = true
 
             if not self.playerFailed and not fruit.isDanger then
