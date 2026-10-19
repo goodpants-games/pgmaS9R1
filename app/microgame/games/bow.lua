@@ -41,9 +41,10 @@ function Game:new(mgr)
     self:releaseOnUnload(self.arrowSpr)
     self.arrowSpr.alignment = "center"
 
-    self.music = self.manager:newAudioSource("/res/music/CLASS11.MOD", "stream")
+    self.music = self.manager:newAudioSource("/res/microgames/bow/blueberry.ogg", "stream")
     self:releaseOnUnload(self.music)
-    self.music:seek(5.6)
+    self.music:setPitch(mgr:getTempoScale() * 0.68)
+    self.music:setVolume(0.4)
     self.music:play()
 
     self.bowmanX = 16
