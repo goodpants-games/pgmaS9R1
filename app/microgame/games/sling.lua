@@ -32,6 +32,16 @@ function Game:new(mgr)
     self.cpSpr = Sprite.new(self:getRes("sticky.json"))
     self:releaseOnUnload(self.cpSpr)
     self.bgImg = Lg.newImage(self:getRes("bg.png"))
+
+    self.goopSnd = mgr:newAudioSource(self:getRes("goop.wav"), "static")
+    self:releaseOnUnload(self.goopSnd)
+
+    self.loseSnd = mgr:newAudioSource("/res/microgames/bounce/fail.wav", "static")
+    self:releaseOnUnload(self.loseSnd)
+
+    self.winSnd = mgr:newAudioSource("/res/microgames/flower/win.wav", "static")
+    self:releaseOnUnload(self.winSnd)
+
     self.music = mgr:newAudioSource(self:getRes("music.ogg"), "stream")
     self.music:setVolume(0.7)
     self.music:setPitch(mgr:getTempoScale())
@@ -47,6 +57,7 @@ function Game:new(mgr)
     self.plrVx = 0.0
     self.plrVy = 0.0
     self.plrRot = 0.0
+    self.playerFell = false
 
     self.throwAng = -math.pi / 2
     self.throwTicker = 0
@@ -174,13 +185,20 @@ function Game:tick()
             self.plrLocked = false
             self.plrVx = math.cos(self.throwAng) * LAUNCH_POWER
             self.plrVy = math.sin(self.throwAng) * LAUNCH_POWER
+            self:_playGoopSound()
         end
     else
         self.plrX = self.plrX + self.plrVx
         self.plrY = self.plrY + self.plrVy
         self.plrVy = self.plrVy + GRAVITY
-
         self.plrRot = self.plrRot + math.sign(self.plrVx) * 0.2
+
+        if not self.playerFell and self.plrY > Display.scrH then
+            if not self.playerFell then
+                self.loseSnd:play()
+            end
+            self.playerFell = true
+        end
 
         for cpi, cp in pairs(self.checkpoints) do
             if cp.disabled then
@@ -201,6 +219,7 @@ function Game:tick()
 
                 if cp.last then
                     self.win = true
+                    self.winSnd:play()
                 end
             end
 
@@ -211,6 +230,8 @@ function Game:tick()
                 self.plrVy = 0
                 self.plrLocked = true
                 cp.disabled = true
+
+                self:_playGoopSound()
                 
                 if not cp.last then
                     self.throwAng = -math.pi/2
@@ -303,6 +324,13 @@ function Game:draw()
         eyeOy = math.round( math.sin(self.throwAng) * 4 )
     end
     self.plrSpr:drawCel(eyeCel, self.plrX + eyeOx, self.plrY + eyeOy, eyeRot)
+end
+
+function Game:_playGoopSound()
+    local rnd = love.math.random() * 2.0 - 1.0
+    self.goopSnd:stop()
+    self.goopSnd:setPitch(rnd*0.3 + 0.8)
+    self.goopSnd:play()
 end
 
 return Game
