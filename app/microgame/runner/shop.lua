@@ -110,6 +110,14 @@ function Shop:new(runner)
     self.res.music:setLooping(true)
     self.res.music:setVolume(0.6)
 
+    self.res.select =
+        love.audio.newSource("/res/sounds/name_entry/move.wav", "static")
+    self.res.hold =
+        love.audio.newSource("/res/sounds/shop_confirm_hold.wav", "static")
+    self.res.hold:setVolume(0.5)
+    self.res.discard =
+        love.audio.newSource("/res/sounds/name_entry/select.wav", "static")
+
     self:_updateText()
 end
 
@@ -139,6 +147,7 @@ function Shop:auxButtonPressed(idx)
         runner.items[idx].data = nil
 
         self.removeItem = false
+        self.res.discard:play()
         self:_updateText()
     end
 end
@@ -156,14 +165,23 @@ function Shop:tick()
 
     if heldBtn then
         self.confirmTimer = self.confirmTimer + 1
+
+        if self.confirmTimer == CONFIRM_MIN then
+            self.res.hold:setPitch(1.5)
+            self.res.hold:play()
+        end
     end
 
     if releasedBtn then
+        self.res.hold:stop()
+
         if not self.removeItem and self.confirmTimer < CONFIRM_MIN then
             self.selectedItem = self.selectedItem + 1
             if self.selectedItem > #self.items then
                 self.selectedItem = 1
             end
+            self.res.select:stop()
+            self.res.select:play()
             self:_updateText()
         end
 
