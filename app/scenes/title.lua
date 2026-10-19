@@ -7,6 +7,7 @@ local fontres = require("fontres")
 local Userdata = require("userdata")
 local Input = require("input")
 local Sprite = require("sprite")
+local Shaders = require("shaders")
 
 local scene = Sceneman.scene()
 local self
@@ -16,37 +17,6 @@ local TITLE_LETTER_ADVANCE = 12
 local TITLE_LETTER_COUNT = 8
 local TITLE_LETTER_OX = 42
 local TITLE_LETTER_OY = 20
-
-local HUE_SHIFT_SHADER_SRC = [[
-uniform float u_hue;
-uniform float u_sat;
-
-vec3 rgb2hsv(vec3 c)
-{
-    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-
-    float d = q.x - min(q.w, q.y);
-    float e = 1.0e-10;
-    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
-
-vec3 hsv2rgb(vec3 c)
-{
-    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
-{
-    vec4 smp = Texel(tex, texture_coords);
-    vec3 hsv = rgb2hsv(smp.rgb);
-    hsv = vec3(hsv.r + u_hue, hsv.g * u_sat, hsv.b);
-    return vec4(hsv2rgb(hsv), smp.a) * color;
-}
-]]
 
 function scene.load(data)
     print("load title")
@@ -73,8 +43,6 @@ function scene.load(data)
     self.title_letters_spr.alignment = "topleft"
     self.title_letters2_spr = Sprite.new("/res/sprites/title_letters2.json")
     self.title_letters2_spr.alignment = "topleft"
-
-    self.hue_shift_shader = Lg.newShader(HUE_SHIFT_SHADER_SRC)
 
     self.leaderboard_wrap_limit = 100
     self.leaderboard_texts = {}
@@ -110,7 +78,6 @@ function scene.unload()
     self.info_txt:release()
     self.title_letters_spr:release()
     self.title_letters2_spr:release()
-    self.hue_shift_shader:release()
     self = nil
 end
 
@@ -179,11 +146,11 @@ function scene.draw()
                 + math.sin((self.tick * phase + n/10) * (math.pi*2)) * 3
 
             if j > 4 then
-                Lg.setShader(self.hue_shift_shader)
+                Lg.setShader(Shaders.hueShift)
 
                 local shf = self.tick / 120 + j / 10
-                self.hue_shift_shader:send("u_hue", shf % 1.0)
-                self.hue_shift_shader:send("u_sat", 0.7)
+                Shaders.hueShift:send("u_hue", shf % 1.0)
+                Shaders.hueShift:send("u_sat", 0.7)
             else
                 Lg.setShader()
             end

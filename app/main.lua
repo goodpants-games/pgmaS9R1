@@ -2,9 +2,10 @@ require("conf2")
 
 local USE_CRT = true
 
+Display = require("display")
 local fontres = require("fontres")
 local Input = require("input")
-Display = require("display")
+local Shaders = require("shaders")
 
 App.mousex = 0
 App.mousey = 0
@@ -16,7 +17,7 @@ local DISPLAY_RENDER_SCALE = 3.0
 local display_canvas = Lg.newCanvas(App.scrW, App.scrH, { dpiscale = 1.0 })
 local shellCanvas = Lg.newCanvas(240, 180, { dpiscale = 1.0 })
 local sideBlurCanvas = Lg.newCanvas(Display.scrW, Display.scrH / SIDE_BLUR_SCALE, { dpiscale = 1.0 })
-local screenShader = require("crt_shader")
+local screenShader = Shaders.crt
 
 local display_ox = 0.0
 local display_oy = 0.0

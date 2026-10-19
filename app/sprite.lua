@@ -404,7 +404,12 @@ end
 ---@param jsonPath string Path to the JSON file.
 ---@return pklove.SpriteResource
 function module.loadResource(jsonPath)
-    local data = JSON.decode(love.filesystem.read(jsonPath))
+    local jsonData, err = love.filesystem.read(jsonPath)
+    if not jsonData then
+        error(err)
+    end
+
+    local data = JSON.decode(jsonData)
     
     -- load atlas texture
     local pngPath ---@type string

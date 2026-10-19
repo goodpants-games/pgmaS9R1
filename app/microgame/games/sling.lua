@@ -1,8 +1,7 @@
 local GameBase = require("microgame.base")
 local GameConf = require("microgame.conf")
-
--- TODO! limit max angle away from 1->2 checkpoint on fastest speed setting
---       otherwise it may be impossible for the player to win
+local Sprite = require("sprite")
+local Shaders = require("shaders")
 
 local GRAVITY = 0.45
 local CHECKPOINT_MIN_DIST = 70
@@ -28,14 +27,21 @@ function Game:new(mgr)
     self.backgroundColor = { batteries.colour.unpack_rgb(0xd8a2bf) }
 
     self.resRoot = "/res/microgames/sling/"
-    self.plrImg = Lg.newImage(self:getRes("player.png"))
-    self:releaseOnUnload(self.plrImg)
+    self.plrSpr = Sprite.new(self:getRes("player.json"))
+    self:releaseOnUnload(self.plrSpr)
+    self.cpSpr = Sprite.new(self:getRes("sticky.json"))
+    self:releaseOnUnload(self.cpSpr)
+    self.bgImg = Lg.newImage(self:getRes("bg.png"))
+
+    self.bgScroll = 0
+    self.bgHueShift = 0
 
     self.plrLocked = true
     self.plrX = GameConf.scrW / 2
     self.plrY = GameConf.scrH - 20
-    self.plrVx = 0
-    self.plrVy = 0
+    self.plrVx = 0.0
+    self.plrVy = 0.0
+    self.plrRot = 0.0
 
     self.throwAng = -math.pi / 2
     self.throwTicker = 0
@@ -120,8 +126,9 @@ end
 function Game:_add_checkpoint(x, y)
     local checkpoint = {
         x = x, y = y,
+        r = (love.math.random()*2.0-1.0) * math.rad(10),
         disabled = false,
-        last = false
+        last = false,
     }
     table.insert(self.checkpoints, checkpoint)
     return checkpoint
@@ -134,6 +141,11 @@ function Game:_approximate_arc(px, py, vx, vy, ticks)
 end
 
 function Game:tick()
+    self.bgScroll = (self.bgScroll + 0.5) % 32
+    if self.win then
+        self.bgHueShift = self.bgHueShift + 0.02
+    end
+
     if self.plrLocked then
         if self.win then
             return
@@ -158,6 +170,8 @@ function Game:tick()
         self.plrX = self.plrX + self.plrVx
         self.plrY = self.plrY + self.plrVy
         self.plrVy = self.plrVy + GRAVITY
+
+        self.plrRot = self.plrRot + math.sign(self.plrVx) * 0.2
 
         for cpi, cp in pairs(self.checkpoints) do
             if cp.disabled then
@@ -208,15 +222,30 @@ function Game:tick()
 end
 
 function Game:draw()
+    -- draw background
+    local bgScroll = self.bgScroll
+
+    Lg.setShader(Shaders.hueShift)
+    Shaders.hueShift:send("u_hue", self.bgHueShift)
+    Shaders.hueShift:send("u_sat", 1.0)
+    for y=1, 7 do
+        for x=1, 7 do
+            Lg.draw(self.bgImg, (x-1)*32 - bgScroll, (y-1)*32 - bgScroll)
+        end
+    end
+    Lg.setShader()
+
     -- checkpoints
     for _, checkpoint in pairs(self.checkpoints) do
-        if checkpoint.last then
-            Lg.setColor(1, 1, 0)
-        else
-            Lg.setColor(1, 0, 1)
-        end
+        local cel = checkpoint.last and 2 or 1
+        self.cpSpr:drawCel(cel, checkpoint.x, checkpoint.y, checkpoint.r)
+        -- if checkpoint.last then
+        --     Lg.setColor(1, 1, 0)
+        -- else
+        --     Lg.setColor(1, 0, 1)
+        -- end
 
-        Lg.circle("fill", checkpoint.x, checkpoint.y, 8)
+        -- Lg.circle("fill", checkpoint.x, checkpoint.y, 8)
     end
 
     -- path prediction
@@ -227,6 +256,9 @@ function Game:draw()
         local predictVy = math.sin(self.throwAng) * LAUNCH_POWER
         for i=0, 59 do
             if i % 5 == 4 then
+                Lg.setColor(0, 0, 0, 0.5)
+                Lg.rectangle("fill", predictX - 1, predictY - 1, 4, 4)
+
                 Lg.setColor(1, 1, 1)
                 Lg.rectangle("fill", predictX - 2, predictY - 2, 4, 4)
             end
@@ -252,10 +284,16 @@ function Game:draw()
 
     -- player
     Lg.setColor(1, 1, 1)
-    Lg.draw(self.plrImg, math.round(self.plrX), math.round(self.plrY),
-            0,
-            2, 2,
-            self.plrImg:getWidth() / 2, self.plrImg:getHeight() / 2)
+    self.plrSpr:drawCel(1, self.plrX, self.plrY)
+    local eyeOx = 0
+    local eyeOy = 0
+    local eyeCel = self.win and 3 or 2
+    local eyeRot = self.win and 0 or self.plrRot
+    if self.plrLocked and not self.win then
+        eyeOx = math.round( math.cos(self.throwAng) * 4 )
+        eyeOy = math.round( math.sin(self.throwAng) * 4 )
+    end
+    self.plrSpr:drawCel(eyeCel, self.plrX + eyeOx, self.plrY + eyeOy, eyeRot)
 end
 
 return Game
