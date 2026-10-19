@@ -103,8 +103,8 @@ function Shop:new(runner)
     self.itemNameDesc = Lg.newText(FontRes.monogram)
 
     self.res = {}
-    self.res.beetleSpr = Sprite.new("/res/sprites/firebeetle/firebeetle_shop.json")
-    self.res.beetleSpr:play("think")
+    self.res.beetleSpr = Sprite.new("/res/sprites/firebeetle_shop.json")
+    self.res.beetleSpr:play("Tag")
 
     self.res.music = love.audio.newSource("/res/music/shop.ogg", "stream")
     self.res.music:setLooping(true)
@@ -282,7 +282,7 @@ function Shop:draw()
     do
         Lg.setScissor(0, 0, GameConf.scrW, counterY)
         Lg.setColor(1, 1, 1)
-        self.res.beetleSpr:draw(cx, 40)
+        self.res.beetleSpr:draw(cx, 40, 0, 2, 2)
         Lg.setScissor()
 
         Lg.setColor(1, 0, 0)
@@ -291,19 +291,19 @@ function Shop:draw()
 
     local txt1 = "CHANGE:TAP"
     Lg.setColor(0, 0, 0)
-    self:_drawControlText(txt1, "left", 1, 12)
+    self:_drawControlText(txt1, "right", 1, 12)
     if self.removeItem then
         Lg.setColor(0.2, 0.2, 0.2)
     else
         Lg.setColor(1, 1, 1)
     end
-    self:_drawControlText(txt1, "left", 0, 11)
+    self:_drawControlText(txt1, "right", 0, 11)
        
     local txt2 = self.removeItem and "SKIP:HOLD" or "CONFIRM:HOLD"
     Lg.setColor(0, 0, 0)
-    self:_drawControlText(txt2, "left", 1, 22)
+    self:_drawControlText(txt2, "right", 1, 22)
     Lg.setColor(1, 1, 1)
-    self:_drawControlText(txt2, "left", 0, 21)
+    self:_drawControlText(txt2, "right", 0, 21)
 end
 
 ---@param text string
