@@ -32,6 +32,11 @@ function Game:new(mgr)
     self.cpSpr = Sprite.new(self:getRes("sticky.json"))
     self:releaseOnUnload(self.cpSpr)
     self.bgImg = Lg.newImage(self:getRes("bg.png"))
+    self.music = mgr:newAudioSource(self:getRes("music.ogg"), "stream")
+    self.music:setVolume(0.7)
+    self.music:setPitch(mgr:getTempoScale())
+    self.music:play()
+    self:releaseOnUnload(self.music)
 
     self.bgScroll = 0
     self.bgHueShift = 0
@@ -138,6 +143,10 @@ function Game:_approximate_arc(px, py, vx, vy, ticks)
     return
         px + vx * ticks,
         py + vy * ticks + 0.5 * GRAVITY * ticks * ticks
+end
+
+function Game:onTimerIncrease()
+    self.music:setLooping(true)
 end
 
 function Game:tick()
