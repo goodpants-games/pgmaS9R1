@@ -355,6 +355,10 @@ function subStates.modifier(master)
             gameMgr.speed = 0
             gameMgr.difficulty = math.min(gameMgr.difficulty + 1, 2)
             runner.round = 0
+
+            if runner.lives < GameConf.maxLives then
+                runner.lives = runner.lives + 1
+            end
         end
     end
 
