@@ -57,6 +57,7 @@ function love.conf(t)
     end
 
     t.version = "11.4"
+    t.window.title = "Monoware"
     t.window.width = App.scrW
     t.window.height = App.scrH
     t.window.resizable = true
