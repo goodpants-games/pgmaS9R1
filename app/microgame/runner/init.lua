@@ -325,6 +325,7 @@ function Runner:_loadMicrogame(name)
 
     -- initialize microgame
     self.gameManager:loadGame(gameCtor)
+    Mark_perf_heavy_frame()
 
     self.verbText:set(self.gameManager.game.verb)
 end
