@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, minimum-scale=1, maximum-scale=1">
-    <title>Unyuland</title>
+    <title>Loading...</title>
 
     <style>
         canvas {
@@ -61,6 +61,22 @@
           e.preventDefault();
         }
       }, false);
+
+      let resizeToFill = () => {
+        let w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+        let h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+
+        let canvas = document.getElementById("canvas");
+        let loadingImg = document.getElementById('loadingCanvas')
+
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        loadingImg.width = w;
+        loadingImg.height = h;
+      }
+
+      window.addEventListener("resize", resizeToFill);
+      resizeToFill();
 
       var Module = {
         arguments: ["./game.love"],
