@@ -89,6 +89,8 @@ end
 function Display.drawDisplay()
     Lg.push("all")
     Lg.setCanvas(Display.canvas)
+    Lg.origin()
+    Lg.setScissor()
     do
         local r, g, b, a = Lg.getBackgroundColor()
         if a > 0 then

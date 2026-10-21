@@ -14,7 +14,6 @@ App.frame = 0
 local SIDE_BLUR_SCALE = 6.0
 local DISPLAY_RENDER_SCALE = 3.0
 
-local display_canvas = Lg.newCanvas(App.scrW, App.scrH, { dpiscale = 1.0 })
 local shellCanvas = Lg.newCanvas(240, 180, { dpiscale = 1.0 })
 local sideBlurCanvas = Lg.newCanvas(Display.scrW, Display.scrH / SIDE_BLUR_SCALE, { dpiscale = 1.0 })
 local screenShader = Shaders.crt
@@ -140,17 +139,17 @@ function love.keypressed(key)
         USE_CRT = not USE_CRT
     end
 
-    if not IS_PACKAGED and key == "f12" then
-        local data = display_canvas:newImageData()
-        local fdata = data:encode("png")
+    -- if not IS_PACKAGED and key == "f12" then
+    --     local data = display_canvas:newImageData()
+    --     local fdata = data:encode("png")
 
-        local file = assert(io.open("screenshot.png", "wb"), "could not open screenshot.png")
-        file:write(fdata:getString())
-        file:close()
+    --     local file = assert(io.open("screenshot.png", "wb"), "could not open screenshot.png")
+    --     file:write(fdata:getString())
+    --     file:close()
 
-        fdata:release()
-        data:release()
-    end
+    --     fdata:release()
+    --     data:release()
+    -- end
 end
 
 ---@diagnostic disable-next-line duplicate-set-field
@@ -245,57 +244,78 @@ function love.update(dt)
     anl_total:add_sample(dt)
 end
 
+---@param x number?
+---@param y number?
+---@param w number?
+---@param h number?
+local function setScissorScaled(x, y, w, h)
+    Lg.setScissor(
+        (x or 0) * display_scale + display_ox,
+        (y or 0) * display_scale + display_oy,
+        (w or App.scrW) * display_scale,
+        (h or App.scrH) * display_scale
+    )
+end
+
 ---@diagnostic disable-next-line duplicate-set-field
 function love.draw()
     local draw_ts = love.timer.getTime()
     Jprof.push("draw")
 
+    Lg.clear(0, 0, 0)
+    Lg.translate(display_ox, display_oy)
+    Lg.scale(display_scale, display_scale)
+    setScissorScaled(0, 0, App.scrW, App.scrH)
+
     if did_tick then
         local rscl = DISPLAY_RENDER_SCALE
         local scrX = math.round(Display.scrX / rscl)
-        local liSx = 12
-        local liOx = 16
+        local liSx = 8
+        local liOx = 5
 
         Display.drawDisplay()
 
         -- draw display to side blur canvas
+        Lg.push("all")
         Lg.setCanvas(sideBlurCanvas)
+        Lg.origin()
+        Lg.setScissor()
         Display.canvas:setFilter("linear", "linear")
         Lg.draw(Display.canvas, 0, 0, 0, 1.0, 1.0 / SIDE_BLUR_SCALE)
+        Lg.pop()
 
+        Lg.push("all")
         Lg.setCanvas(shellCanvas)
+        Lg.origin()
+        Lg.setScissor()
         Lg.clear(0, 0, 0)
         Display.drawShell()
-        Lg.setCanvas()
 
-        Lg.setCanvas(display_canvas)
+        -- set up light influence draw
+        Lg.setColor(0.4, 0.4, 0.4, 1.0)
+        Lg.setBlendMode("add")
+        sideBlurCanvas:setFilter("linear", "linear")
+        -- draw light influence on left bar
+        Lg.setScissor(26, 0, 3, Display.scrH)
+        Lg.draw(sideBlurCanvas,
+            26 - liOx, 0,
+            0,
+            liSx, SIDE_BLUR_SCALE
+        )
+        -- draw light influence on right bar
+        Lg.setScissor(211, 0, 3, Display.scrH)
+        Lg.draw(sideBlurCanvas,
+            211 - Display.scrW * liSx + liOx, 0,
+            0,
+            liSx, SIDE_BLUR_SCALE)
+        Lg.pop()
+        
         local bg_r, bg_g, bg_b, bg_a = Lg.getBackgroundColor()
         Lg.clear(bg_r, bg_g, bg_b, bg_a)
 
+        -- draw shell
         Lg.setColor(1, 1, 1)
         Lg.draw(shellCanvas, 0, 0, 0, rscl, rscl)
-
-        -- set up light influence draw
-        Lg.setColor(0.5, 0.5, 0.5, 1.0)
-        Lg.setBlendMode("add")
-        -- draw light influence on left bar
-        Lg.setScissor(78, 0, 12, App.scrH)
-        Lg.draw(sideBlurCanvas,
-            scrX - liOx, 0,
-            0,
-            liSx, rscl * SIDE_BLUR_SCALE
-        )
-        -- draw light influence on right bar
-        Lg.setScissor(630, 0, 12, App.scrH)
-        sideBlurCanvas:setFilter("linear", "linear")
-        Lg.draw(sideBlurCanvas,
-            (scrX + Display.scrW*rscl) - Display.scrW * liSx + liOx, 0,
-            0,
-            liSx, rscl * SIDE_BLUR_SCALE)
-
-        -- revert the setup
-        Lg.setBlendMode("alpha")
-        Lg.setScissor()
         
         -- draw screen display, crt shader
         Lg.setColor(1, 1, 1)
@@ -312,22 +332,12 @@ function love.draw()
         end
 
         Debug.draw:flush()
-
-        Lg.setCanvas()
     end
     
-    -- draw display onto window
-    Jprof.push("display")
-    Lg.clear(0, 0, 0, 1)
-    Lg.setColor(1, 1, 1)
-    Lg.origin()
-    if did_tick then
-        Lg.draw(display_canvas, display_ox, display_oy, 0, display_scale, display_scale)
-    end
-    Lg.setShader()
-
-    Jprof.pop("display")
     Jprof.pop("draw")
+
+    Lg.origin()
+    Lg.setScissor()
 
     local draw_frametime = love.timer.getTime() - draw_ts
     anl_draw:add_sample(draw_frametime)
