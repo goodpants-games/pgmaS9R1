@@ -1,45 +1,42 @@
 // Thanks to Chromecide for letting me steal his scratch pen plus shader!!!!
+
+// try to use highest available precision float
+#define HIGHP_OR_MEDIUMP LOVE_HIGHP_OR_MEDIUMP
 #ifdef GL_ES
-// TODO: make sure if device doesn't support highp to fallback to mediump
-//       this needs to be done by the lua code...
-#   define HIGHESTP highp
-// defualt [sic] precision for floats
-precision HIGHESTP float;
-#else
-#   define HIGHESTP
+precision HIGHP_OR_MEDIUMP float;
 #endif
 
-uniform HIGHESTP float u_timer;
+uniform HIGHP_OR_MEDIUMP float u_timer;
 
-uniform HIGHESTP float master;
-uniform HIGHESTP float scan_on;
-uniform HIGHESTP float scan_strength;
-uniform HIGHESTP float scan_power;
-uniform HIGHESTP float scan_phase;
-uniform HIGHESTP float aberration_on;
-uniform HIGHESTP float aberration_px;
-uniform HIGHESTP float glow_on;
-uniform HIGHESTP float glow_strength;
-uniform HIGHESTP float glow_radius_px;
-uniform HIGHESTP float glow_threshold;
-uniform HIGHESTP float gain_on;
-uniform HIGHESTP float gain;
-uniform HIGHESTP float contrast_on;
-uniform HIGHESTP float contrast;
-uniform HIGHESTP float saturation_on;
-uniform HIGHESTP float saturation;
-uniform HIGHESTP float vignette_on;
-uniform HIGHESTP float vignette_strength;
-uniform HIGHESTP float vignette_power;
-uniform HIGHESTP float noise_on;
-uniform HIGHESTP float noise_strength;
-uniform HIGHESTP float scan_adaptive_on;
-uniform HIGHESTP float scan_bright_strength;
-uniform HIGHESTP float scan_response;
-uniform HIGHESTP float pixel_rounding;
-uniform HIGHESTP float pixel_corner_round;
-uniform HIGHESTP float soft_sampling;
-uniform HIGHESTP vec2 signal_size;
+uniform HIGHP_OR_MEDIUMP float master;
+uniform HIGHP_OR_MEDIUMP float scan_on;
+uniform HIGHP_OR_MEDIUMP float scan_strength;
+uniform HIGHP_OR_MEDIUMP float scan_power;
+uniform HIGHP_OR_MEDIUMP float scan_phase;
+uniform HIGHP_OR_MEDIUMP float aberration_on;
+uniform HIGHP_OR_MEDIUMP float aberration_px;
+uniform HIGHP_OR_MEDIUMP float glow_on;
+uniform HIGHP_OR_MEDIUMP float glow_strength;
+uniform HIGHP_OR_MEDIUMP float glow_radius_px;
+uniform HIGHP_OR_MEDIUMP float glow_threshold;
+uniform HIGHP_OR_MEDIUMP float gain_on;
+uniform HIGHP_OR_MEDIUMP float gain;
+uniform HIGHP_OR_MEDIUMP float contrast_on;
+uniform HIGHP_OR_MEDIUMP float contrast;
+uniform HIGHP_OR_MEDIUMP float saturation_on;
+uniform HIGHP_OR_MEDIUMP float saturation;
+uniform HIGHP_OR_MEDIUMP float vignette_on;
+uniform HIGHP_OR_MEDIUMP float vignette_strength;
+uniform HIGHP_OR_MEDIUMP float vignette_power;
+uniform HIGHP_OR_MEDIUMP float noise_on;
+uniform HIGHP_OR_MEDIUMP float noise_strength;
+uniform HIGHP_OR_MEDIUMP float scan_adaptive_on;
+uniform HIGHP_OR_MEDIUMP float scan_bright_strength;
+uniform HIGHP_OR_MEDIUMP float scan_response;
+uniform HIGHP_OR_MEDIUMP float pixel_rounding;
+uniform HIGHP_OR_MEDIUMP float pixel_corner_round;
+uniform HIGHP_OR_MEDIUMP float soft_sampling;
+uniform HIGHP_OR_MEDIUMP vec2 signal_size;
 
 //Fragment Shader
 mediump vec4 effect(mediump vec4 color, Image tex, mediump vec2 texture_coords, mediump vec2 screen_coords) {
